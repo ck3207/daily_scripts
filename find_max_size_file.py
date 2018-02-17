@@ -66,7 +66,7 @@ for dirpath, dirnames, filenames in os.walk(top=path):
     for name in filenames:
         file = join(dirpath,name)
         size = getsize(file)
-        rank_list,removed_size = rank(rank_list=rank_list,size=size,length=top_N)
+        rank_list,removed_size = rank(rank_list=rank_list,size=size,length=int(top_N))
         if removed_size:
             try:
                 rank_dic[size] = file
