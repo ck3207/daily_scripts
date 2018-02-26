@@ -4,13 +4,6 @@ __author__ = "chenk"
 import os,sys
 from os.path import join, getsize
 
-try:
-    path = sys.argv[1]
-    top_N = sys.argv[2]
-except:
-    path = os.getcwd()
-    path = "D:\\"
-    top_N = 10
 
 def humanble_size(size):
     """For Readding Easy!"""
@@ -30,6 +23,8 @@ def humanble_size(size):
         return str(round(size,2))+"bytes"
 
 def rank(rank_list,size,length=3):
+    """Return rank_list and size,if size is False then rank_list is not updated, 
+    others are updated. Size will be returned which was removed."""
     is_update = False
     if length < 3:
         length = 3
@@ -55,24 +50,36 @@ def rank(rank_list,size,length=3):
     size = rank_list.pop(-1)
     return rank_list,size
 
-exclusive_dir = ["iSeeRobotAdvisor","LightInvesting2","VM INSTALL","VIPSTU"]
-rank_list = list()
-rank_dic = dict()
-for dirpath, dirnames, filenames in os.walk(top=path):
-    for each in exclusive_dir:
-        if each in dirnames:
-            dirnames.remove(each)
-    # size = sum([getsize(join(dirpath, name)) for name in filenames])
-    for name in filenames:
-        file = join(dirpath,name)
-        size = getsize(file)
-        rank_list,removed_size = rank(rank_list=rank_list,size=size,length=int(top_N))
-        if removed_size:
-            try:
-                rank_dic[size] = file
-                rank_dic.pop(removed_size)
-            except:
-                pass
+if __name__ == "__main__":
+    try:
+        path = sys.argv[1]
+        top_N = sys.argv[2]
+    except:
+        path = os.getcwd()
+        path = "D:\\"
+        top_N = 10
 
-for key,value in sorted(rank_dic.items(),key=lambda d:d[0],reverse=True):
-    print(value, humanble_size(key))
+    exclusive_dir = ["iSeeRobotAdvisor","LightInvesting2","VM INSTALL","VIPSTU"]
+    rank_list = list()
+    rank_dic = dict()
+
+    # topdown=True 则可更改dirnames列表(删除或者分割列表)，walk方法紧会递归进入仍在dirnames列表中的目录；
+    # topdown=False 则无论对dirnames列表如何处理，递归子目录会重新生成，不会改变
+    for dirpath, dirnames, filenames in os.walk(top=path,topdown=True):
+        for each in exclusive_dir:
+            if each in dirnames:
+                dirnames.remove(each)
+        for name in filenames:
+            file = join(dirpath,name)   # 合并成绝对路径
+            size = getsize(file)    # 获取文件大小（单位：byte 字节）
+            rank_list,removed_size = rank(rank_list=rank_list,size=size,length=int(top_N))
+            if removed_size:
+                try:
+                    rank_dic[size] = file
+                    rank_dic.pop(removed_size)
+                except:
+                    pass
+
+    # 按照字典的key 进行排序
+    for key,value in sorted(rank_dic.items(),key=lambda d:d[0],reverse=True):
+        print(value, humanble_size(key))
