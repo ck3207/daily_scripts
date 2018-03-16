@@ -71,7 +71,10 @@ if __name__ == "__main__":
                 dirnames.remove(each)
         for name in filenames:
             file = join(dirpath,name)   # 合并成绝对路径
-            size = getsize(file)    # 获取文件大小（单位：byte 字节）
+            try:
+                size = getsize(file)    # 获取文件大小（单位：byte 字节）
+            except:
+                continue
             rank_list,removed_size = rank(rank_list=rank_list,size=size,length=int(top_N))
             if removed_size:
                 try:
