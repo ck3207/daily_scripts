@@ -16,3 +16,11 @@ print(sorted(b.items(),key=lambda kv:kv[1], reverse=False))
 print(sorted(b.items(),key=lambda kv:(kv[1],kv[0]), reverse=False))
 print(sorted(c,key=lambda l:l[0], reverse=False))
 print(sorted(c,key=lambda l:(l[0],l[1]), reverse=False))
+
+x = 10.123456789
+print(int(2*x)/2+int(2*x)%2)
+def round_off(num, decimals_length):
+    temp_1 = num * 10 ** (decimals_length + 1) / 10
+    temp_2 = num * 10 ** (decimals_length + 1) % 10
+    if temp_2 >= 5:
+        return temp_1

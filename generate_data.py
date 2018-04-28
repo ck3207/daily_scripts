@@ -94,4 +94,3 @@ if __name__ == "__main__":
         cols = get_cols(table)
         generate_data_for_mysqldb(columns=cols,commit_num=10,commit_times=3)
 
-
