@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 __author__ = "chenk"
-
 from connect_to_mysql import Connect_mysql
+import json
 
 class Transfer_Data:
     """从A数据库筛选特定数据插入至指定数据库B中"""
     def __init__(self, table_dict=dict()):
-        """Connect to mysql"""
-        self.table_dic = table_dict
+        """Connect to mysql.
+        table_dict is a dict. For example:
+        {"table":{"smart_stock_search":{"hasWhere":True,"cols":{"CreateTime":">='2018-04-01' \
+        and CreateTime<='2018-04-11'"},"orderby":"CreateTime asc", "limit":"100"}}}"""
+        self.table_dic = self.get_config()
         connect_mysql = Connect_mysql()
         mysql_config = connect_mysql.get_config("mysql_config.json")
         self.conn_from, self.cur_from = connect_mysql.conn_mysql(host=mysql_config["small_tools_ifs8"]["host"],
@@ -33,43 +36,62 @@ class Transfer_Data:
 
         return sql
 
-    def query_data(self, table_info=dict()):
+    def query_data(self, table, table_info):
         """Query from database."""
         where_condition = ""
-        for table,info in table_info.items():
-            if info.get("hasWhere") == True:
-                where_condition = "where "
-                if info.get("cols"):
-                    for key,value in info["cols"].items():
-                        where_condition += key+value+" and "
-                    where_condition = where_condition[:-4]
-            if info.get("orderby"):
-                where_condition += " order by " + info.get("orderby")
-            if info.get("limit"):
-                where_condition += " limit " + info.get("limit")
+        if table_info.get("hasWhere") == "true":
+            where_condition = "where "
+            if table_info.get("cols"):
+                for key,value in table_info["cols"].items():
+                    where_condition += key+value+" and "
+                where_condition = where_condition[:-4]
+        if table_info.get("orderby"):
+            where_condition += " order by " + table_info.get("orderby")
+        if table_info.get("limit"):
+            where_condition += " limit " + table_info.get("limit")
         condition = where_condition
         query_sql = """select * from {0} {1} ;""".format(table, condition)
         create_table = self.get_sql_of_drop_and_create_table(table)
         insert_sql = "insert into {0} values ".format(table)
+
         return create_table,query_sql,insert_sql
 
     def insert_data(self):
         """Insert Data which query from database to the target database"""
-        for value in self.table_dic.values():
-            create_sql, query_sql,insert_sql = self.query_data(value)
+        # insert_sql
+        for table,table_info in self.table_dic.items():
+            create_sql, query_sql,insert_sql = self.query_data(table,table_info)
             self.cur_from.execute(query_sql)
             data = self.cur_from.fetchall()
+            temp_sql = ""
+            # if table == "smart_stock_info":
+            #     pass
             for each_value in data:
-                insert_sql += "("
+                temp_sql = "{0}(".format(temp_sql)
                 for each_col in each_value:
-                    insert_sql += "{0},".format(each_col)
-                insert_sql += "{0}),".format(insert_sql[:-1])
-            print(insert_sql)
+                    # 如果查询表字段为NULL，查询返回为None,需处理成NULL
+                    if each_col == None:
+                        temp_sql = "{0}NULL,".format(temp_sql)
+                    else:
+                        temp_sql = "{0}'{1}',".format(temp_sql,each_col)
+                temp_sql = "{0}),".format(temp_sql[:-1])
+            insert_sql += temp_sql[:-1] + ";"
+
+             # execute_sql
+            print("Dealing table:{0}".format(table))
+            self.query_data_to_insert_data(create_sql,insert_sql)
 
         self.__end()
 
-    def query_data_to_insert_data(self,data):
-        """pass"""
+    def query_data_to_insert_data(self,create_sql,insert_sql):
+        """Execute SQL."""
+        try:
+            self.cur_target.execute(create_sql)
+            self.cur_target.execute(insert_sql)
+            self.conn_target.commit()
+        except Exception as e:
+            print(str(e))
+            print("Insert Data SQL:", insert_sql)
 
     def __end(self):
         """Close Connection!"""
@@ -78,9 +100,12 @@ class Transfer_Data:
         self.conn_from.close()
         self.conn_target.close()
 
-about_table = {"table":{"smart_stock_search":{"hasWhere":False,"cols":{"CreateTime":">=2018-04-01","CreateTime":"<=2018-04-11"},"orderby":"CreateTime asc", "limit":"100"}}}
+    def get_config(self, file_name="config.json"):
+        """Get Configuration!"""
+        with open(file_name, "r", encoding="utf-8") as f:
+            config = json.load(f)
+        return config
 
-transfer = Transfer_Data(about_table)
-transfer.insert_data()
-
-{"table":{"smart_stock_search":{"hasWhere":False,"cols":{"CreateTime":">=2018-04-01","CreateTime":"<=2018-04-11"}}}}
+if __name__ == "__main__":
+    transfer = Transfer_Data()
+    transfer.insert_data()

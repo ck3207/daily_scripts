@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = "chenk"
 import  json, pymysql
-from log import  setup_logging
+from log import setup_logging
 import  logging
 
 class Connect_mysql:
