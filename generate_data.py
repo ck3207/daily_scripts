@@ -88,6 +88,15 @@ conn, cur = connect_mysql.conn_mysql(host=mysql_config["localhost_cf_test"]["hos
                         database=mysql_config["localhost_cf_test"]["database"], charset=mysql_config["localhost_cf_test"]["charset"])
 
 if __name__ == "__main__":
+    connect_mysql = Connect_mysql()
+    mysql_config = connect_mysql.get_config("mysql_config.json")
+    conn, cur = connect_mysql.conn_mysql(host=mysql_config["localhost_cf_test"]["host"],
+                                         port=mysql_config["localhost_cf_test"]["port"], \
+                                         user=mysql_config["localhost_cf_test"]["user"],
+                                         password=mysql_config["localhost_cf_test"]["password"], \
+                                         database=mysql_config["localhost_cf_test"]["database"],
+                                         charset=mysql_config["localhost_cf_test"]["charset"])
+
     # tables = ["all_securate_test","businflag_test"]
     tables = ["his_datastock_test"]
     for table in tables:
