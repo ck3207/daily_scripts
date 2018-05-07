@@ -1,0 +1,4 @@
+2018-05-03 20:55:52,020 - Connect_mysql - ERROR - (1049, "Unknown database 'cf_test'")
+2018-05-03 21:02:21,788 - Connect_mysql - ERROR - (1049, "Unknown database 'cf_test'")
+2018-05-03 21:05:35,742 - Connect_mysql - ERROR - (1049, "Unknown database 'cf_test'")
+2018-05-03 21:05:58,682 - Connect_mysql - ERROR - (1049, "Unknown database 'cf_test'")

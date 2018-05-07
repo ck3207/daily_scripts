@@ -22,4 +22,21 @@
         "password":"123456",
         "database":"cf_test",
         "charset":"utf8"
-        }}
+        },
+    "small_tools_ifs7":{
+        "host":"rm-bp13ze547vy2fug4y.mysql.rds.aliyuncs.com",
+        "port":3306,
+        "user":"ifs_vipstu",
+        "password":"Ifs_vipstu",
+        "database":"ifs7",
+        "charset":"utf8"
+        },
+    "small_tools_ifs8":{
+        "host":"rm-bp13ze547vy2fug4y.mysql.rds.aliyuncs.com",
+        "port":3306,
+        "user":"ifs_vipstu",
+        "password":"Ifs_vipstu",
+        "database":"ifs8",
+        "charset":"utf8"
+        }
+}

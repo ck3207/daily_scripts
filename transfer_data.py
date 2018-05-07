@@ -5,11 +5,12 @@ import json
 
 class Transfer_Data:
     """从A数据库筛选特定数据插入至指定数据库B中"""
-    def __init__(self, table_dict=dict()):
+    def __init__(self, size=2000):
         """Connect to mysql.
         table_dict is a dict. For example:
         {"table":{"smart_stock_search":{"hasWhere":True,"cols":{"CreateTime":">='2018-04-01' \
         and CreateTime<='2018-04-11'"},"orderby":"CreateTime asc", "limit":"100"}}}"""
+        self.size = size
         self.table_dic = self.get_config()
         connect_mysql = Connect_mysql()
         mysql_config = connect_mysql.get_config("mysql_config.json")
@@ -60,33 +61,38 @@ class Transfer_Data:
         """Insert Data which query from database to the target database"""
         # insert_sql
         for table,table_info in self.table_dic.items():
+            if table_info["isPass"] == True:
+                continue
             create_sql, query_sql,insert_sql = self.query_data(table,table_info)
+            self.cur_target.execute(create_sql)
             self.cur_from.execute(query_sql)
-            data = self.cur_from.fetchall()
-            temp_sql = ""
-            # if table == "smart_stock_info":
-            #     pass
-            for each_value in data:
-                temp_sql = "{0}(".format(temp_sql)
-                for each_col in each_value:
-                    # 如果查询表字段为NULL，查询返回为None,需处理成NULL
-                    if each_col == None:
-                        temp_sql = "{0}NULL,".format(temp_sql)
-                    else:
-                        temp_sql = "{0}'{1}',".format(temp_sql,each_col)
-                temp_sql = "{0}),".format(temp_sql[:-1])
-            insert_sql += temp_sql[:-1] + ";"
+            while True:
+                data = self.cur_from.fetchmany(self.size)
+                if data == ():
+                    break
+                temp_sql = ""
+                # if table == "smart_stock_info":
+                #     pass
+                for each_value in data:
+                    temp_sql = "{0}(".format(temp_sql)
+                    for each_col in each_value:
+                        # 如果查询表字段为NULL，查询返回为None,需处理成NULL
+                        if each_col == None:
+                            temp_sql = "{0}NULL,".format(temp_sql)
+                        else:
+                            temp_sql = "{0}'{1}',".format(temp_sql,each_col)
+                    temp_sql = "{0}),".format(temp_sql[:-1])
+                sql = insert_sql + temp_sql[:-1] + ";commit;"
 
-             # execute_sql
-            print("Dealing table:{0}".format(table))
-            self.query_data_to_insert_data(create_sql,insert_sql)
+                 # execute_sql
+                print("Dealing table:{0}".format(table))
+                self.query_data_to_insert_data(sql)
 
         self.__end()
 
-    def query_data_to_insert_data(self,create_sql,insert_sql):
+    def query_data_to_insert_data(self,insert_sql):
         """Execute SQL."""
         try:
-            self.cur_target.execute(create_sql)
             self.cur_target.execute(insert_sql)
             self.conn_target.commit()
         except Exception as e:
@@ -107,5 +113,5 @@ class Transfer_Data:
         return config
 
 if __name__ == "__main__":
-    transfer = Transfer_Data()
+    transfer = Transfer_Data(size=3)
     transfer.insert_data()
