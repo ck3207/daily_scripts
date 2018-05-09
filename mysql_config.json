@@ -31,6 +31,14 @@
         "database":"ifs8",
         "charset":"utf8"
     },
+    "small_tools_ifs7":{
+        "host":"rm-bp13ze547vy2fug4y.mysql.rds.aliyuncs.com",
+        "port":3306,
+        "user":"ifs_vipstu",
+        "password":"Ifs_vipstu",
+        "database":"ifs8",
+        "charset":"utf8"
+    },
     "sit_208":{
         "host":"10.253.102.208",
         "port":3306,
