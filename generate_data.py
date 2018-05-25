@@ -5,7 +5,7 @@ import random,datetime,time
 
 class Generate_Data:
     def get_cols(self,table):
-         """通用造数据函数"""
+         """获取表字段名、字段类型"""
          sql = "desc " + table
          cur.execute(sql)
          result = cur.fetchall()
