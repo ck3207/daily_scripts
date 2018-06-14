@@ -85,7 +85,11 @@ if __name__ == "__main__":
 
     # 按照字典的key 进行排序
     for key,value in sorted(rank_dic.items(),key=lambda d:d[0],reverse=True):
+<<<<<<< HEAD
         print(value, humanble_size(key))
+=======
+        print(value.replace("//","\\"), humanble_size(key))
+>>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
 
 # More details you can Browse Blog
 # http://blog.csdn.net/ck3207/article/details/79392505
