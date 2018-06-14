@@ -2,11 +2,19 @@
 __author__ = "chenk"
 import re
 import pymysql
-
 from tkinter import *
+
+import cx_Oracle
 
 class Connect_to_sql:
     def __init__(self):
+        self.host = ""
+        self.port = ""
+        self.username = ""
+        self.database = ""
+        self.charset = ""
+
+    def get_url(self):
         url = e1.get()
         self.host = re.search("//(.+?):", url).group(1)
         try:
@@ -20,19 +28,31 @@ class Connect_to_sql:
 
     def connect_db(self,db_type="mysql"):
         self.disconnect()
-        # print(v)
+        self.get_url()
         global conn,cur
-        if db_type == "mysql":
+        if DB_TYPE[v.get()] == "mysql":
             try:
                 conn = pymysql.connect(host=self.host,port=self.port,user=self.username,\
                                                     password=self.password,database=self.database,charset=self.charset)
                 cur = conn.cursor()
                 print("Connect to mysql successfully!")
-                self.get_all_tables()
+                self.get_all_tables(db_type="mysql")
             except Exception as e:
                 print("Connect to mysql Error!")
                 print(str(e))
-        self.get_all_tables()
+        elif DB_TYPE[v.get()] == "oracle":
+            """username/password@host:port/database"""
+            try:
+                url = "{0}/{1}@{2}:{3}/{4}".format(self.username,self.password,self.host,self.port,self.database)
+                # print(url)
+                conn = cx_Oracle.connect(url)
+                cur = conn.cursor()
+                print("Connect to oracle successfully!")
+                self.get_all_tables(db_type="oracle")
+            except Exception as e:
+                print("Connect to mysql Error!")
+                print(str(e))
+
         return conn, cur
 
     def disconnect(self, flag=False):
@@ -43,8 +63,12 @@ class Connect_to_sql:
         if flag == True:
             master.destroy()
 
-    def get_all_tables(self):
-        cur.execute("show tables")
+    def get_all_tables(self, db_type):
+        if db_type == "msyql":
+            sql = "show tables"
+        elif db_type == "oracle":
+            sql = "select table_name from user_tables"
+        cur.execute(sql)
         v = IntVar()
         table_name = StringVar()
         table_num = 0
@@ -53,22 +77,25 @@ class Connect_to_sql:
             table_name = table
             row = table_num // 3
             column = table_num % 3
-            Checkbutton(master, text=table_name, width=10*columnspan, anchor=W, padx=10,pady=5)\
-                .grid(row=row+5, column=column*columnspan, columnspan=columnspan)
+            Checkbutton(master, text=table_name, padx=10,pady=5)\
+                .grid(row=row+5, column=column*columnspan, columnspan=columnspan, sticky=W)
             table_num += 1
 
-master = Tk()
-master.minsize(800,300)
-master.maxsize(800,800)
-master.title("数据生成工具")
-# frame = Frame(master,width=100,height=30)
-Label(master, padx=10, pady=5, text="数据库地址：", width=10).grid(row=0,sticky=W)
-Label(master, padx=10, pady=5, text="用  户  名:", width=10).grid(row=1,sticky=W)
-Label(master, padx=10, pady=5, text="密      码:", width=10).grid(row=2,sticky=W)
+    def get_value(self):
+        print(v.get())
+        return v.get()
 
-e1 = Entry(master,width=80)
-e2 = Entry(master,width=80)
-e3 = Entry(master,width=80,show="*")
+master = Tk()
+# master.minsize(800,300)
+# master.maxsize(800,800)
+master.title("数据生成工具")
+Label(master, padx=10, pady=5, text="数据库地址：").grid(row=0,sticky=W)
+Label(master, padx=10, pady=5, text="用  户  名:").grid(row=1,sticky=W)
+Label(master, padx=10, pady=5, text="密      码:").grid(row=2,sticky=W)
+
+e1 = Entry(master, width=80)
+e2 = Entry(master, width=80)
+e3 = Entry(master, width=80, show="*")
 
 # Typesetting
 e1.grid(row=0,column=1,columnspan=8,padx=10,pady=5,sticky=W)
@@ -84,16 +111,15 @@ connect_to_sql = Connect_to_sql()
 conn,cur = 0,0
 
 v = IntVar()
-DB_TYPE = [("mysql",0), ("oracle",1)]
-for db,num in DB_TYPE:
-    Radiobutton(master, text=db,variable=v,value=num,width=10).grid(row=3,column=num,sticky=W)
-    print(v)
+DB_TYPE = {0:"mysql", 1:"oracle"}
+for key,value in DB_TYPE.items():
+    Radiobutton(master, text=value,variable=v,value=key).grid(row=3,column=key,sticky=W)
 
-b3 = Button(master, text="OK", command=lambda:connect_to_sql.connect_db("mysql"), height=5, width=10)\
-    .grid(row=0,column=8,rowspan=3,columnspan=1,sticky=W,padx=10,pady=5)
-b4 = Button(master, text="QUIT", command=lambda :connect_to_sql.disconnect(flag=True),width=10,padx=10,pady=5)\
-    .grid(row=3,column=8,sticky=W)
+b3 = Button(master, text="OK", command=lambda:connect_to_sql.connect_db("mysql"), width=10, height=5)\
+    .grid(row=0,column=9,rowspan=3,sticky=W,padx=10,pady=5)
+b4 = Button(master, text="QUIT", command=lambda :connect_to_sql.disconnect(flag=True), width=10)\
+    .grid(row=3,column=9,sticky=W,padx=10,pady=5)
 
-Label(master,text="选择表",width=20, font=("宋体",18)).grid(row=4, column=2, columnspan=2)
+Label(master,text="配置表关系", font=("宋体",16)).grid(row=4, column=0, columnspan=2, sticky=W,padx=10,pady=5)
 
 mainloop()
