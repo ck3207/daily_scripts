@@ -36,7 +36,6 @@ class Connect_to_sql:
                                                     password=self.password,database=self.database,charset=self.charset)
                 cur = conn.cursor()
                 print("Connect to mysql successfully!")
-                self.get_all_tables(db_type="mysql")
             except Exception as e:
                 print("Connect to mysql Error!")
                 print(str(e))
@@ -48,10 +47,11 @@ class Connect_to_sql:
                 conn = cx_Oracle.connect(url)
                 cur = conn.cursor()
                 print("Connect to oracle successfully!")
-                self.get_all_tables(db_type="oracle")
             except Exception as e:
                 print("Connect to mysql Error!")
                 print(str(e))
+
+        self.get_all_tables(db_type=DB_TYPE[v.get()])
 
         return conn, cur
 
@@ -64,7 +64,7 @@ class Connect_to_sql:
             master.destroy()
 
     def get_all_tables(self, db_type):
-        if db_type == "msyql":
+        if db_type == "mysql":
             sql = "show tables"
         elif db_type == "oracle":
             sql = "select table_name from user_tables"
@@ -122,4 +122,5 @@ b4 = Button(master, text="QUIT", command=lambda :connect_to_sql.disconnect(flag=
 
 Label(master,text="配置表关系", font=("宋体",16)).grid(row=4, column=0, columnspan=2, sticky=W,padx=10,pady=5)
 
+Label()
 mainloop()
