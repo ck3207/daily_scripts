@@ -2,11 +2,19 @@
 __author__ = "chenk"
 import re
 import pymysql
-
 from tkinter import *
+
+import cx_Oracle
 
 class Connect_to_sql:
     def __init__(self):
+        self.host = ""
+        self.port = ""
+        self.username = ""
+        self.database = ""
+        self.charset = ""
+
+    def get_url(self):
         url = e1.get()
         self.host = re.search("//(.+?):", url).group(1)
         try:
@@ -20,7 +28,7 @@ class Connect_to_sql:
 
     def connect_db(self,db_type="mysql"):
         self.disconnect()
-        # print(v.get())
+        self.get_url()
         global conn,cur
         if DB_TYPE[v.get()] == "mysql":
             try:
@@ -28,13 +36,23 @@ class Connect_to_sql:
                                                     password=self.password,database=self.database,charset=self.charset)
                 cur = conn.cursor()
                 print("Connect to mysql successfully!")
-                
-                self.get_all_tables()
+                self.get_all_tables(db_type="mysql")
             except Exception as e:
                 print("Connect to mysql Error!")
                 print(str(e))
         elif DB_TYPE[v.get()] == "oracle":
-            pass
+            """username/password@host:port/database"""
+            try:
+                url = "{0}/{1}@{2}:{3}/{4}".format(self.username,self.password,self.host,self.port,self.database)
+                # print(url)
+                conn = cx_Oracle.connect(url)
+                cur = conn.cursor()
+                print("Connect to oracle successfully!")
+                self.get_all_tables(db_type="oracle")
+            except Exception as e:
+                print("Connect to mysql Error!")
+                print(str(e))
+
         return conn, cur
 
     def disconnect(self, flag=False):
@@ -45,8 +63,12 @@ class Connect_to_sql:
         if flag == True:
             master.destroy()
 
-    def get_all_tables(self):
-        cur.execute("show tables")
+    def get_all_tables(self, db_type):
+        if db_type == "msyql":
+            sql = "show tables"
+        elif db_type == "oracle":
+            sql = "select table_name from user_tables"
+        cur.execute(sql)
         v = IntVar()
         table_name = StringVar()
         table_num = 0
