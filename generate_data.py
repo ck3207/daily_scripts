@@ -4,6 +4,7 @@ from connect_to_mysql import Connect_mysql
 import random,datetime,time
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 def get_cols(table):
      """通用造数据函数"""
      sql = "desc " + table
@@ -87,6 +88,8 @@ def generate_data_for_mysqldb(columns,commit_num,commit_times):
              print("SQL ERROR:{0}".format(sql))
          commit_times -= 1
 =======
+=======
+>>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
 class Generate_Data:
     def get_cols(self,table):
          """获取表字段名、字段类型"""
@@ -217,6 +220,9 @@ class Generate_Data:
              commit_times -= 1
 
 
+<<<<<<< HEAD
+>>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
+=======
 >>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
 
 def get_date(num=0):
@@ -233,6 +239,10 @@ def get_time():
 
 if __name__ == "__main__":
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+    # 连接数据库
+>>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
 =======
     # 连接数据库
 >>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
@@ -246,12 +256,15 @@ if __name__ == "__main__":
                                          charset=mysql_config["localhost_cf_test"]["charset"])
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     # tables = ["all_securate_test","businflag_test"]
     tables = ["smart_organization_forecast_copy","investor","test"]
     for table in tables:
         cols = get_cols(table)
         generate_data_for_mysqldb(columns=cols,commit_num=10,commit_times=3)
 =======
+=======
+>>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
     generate_data = Generate_Data()
     tables = ["portrait_all","portrait_fund"]   # 配置需要插入数据的表名
     # 配置各表关联字段的关系,值相同的键为关联字段 eg: linkfield_judge = {"fund_account":0,"client_id":0, "client_name":1}
@@ -265,5 +278,8 @@ if __name__ == "__main__":
         # print("linkfield:",linkfield)
         cols = generate_data.get_cols(table)    # 获取表字段
         generate_data.generate_data_for_mysqldb(columns=cols,commit_num=10,commit_times=5)  # 生成数据
+<<<<<<< HEAD
+>>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
+=======
 >>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
 
