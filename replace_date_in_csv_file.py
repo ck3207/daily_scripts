@@ -25,9 +25,7 @@ def which_csv(path="file"):
             if ".csv" in file:
                 file_path = "file/{0}".format(file)
                 new_file_path = "file/{0}".format(file.split(".")[0])
-                shutil.copy(file_path, new_file_path + "_1.csv")
-                shutil.copy(file_path, new_file_path + "_2.csv")
-                shutil.copy(file_path, new_file_path + "_3.csv")
+                shutil.copy(file_path, new_file_path + "_bak.csv")
                 csv_file.append(file.split(".")[0])
     return csv_file
 
@@ -72,7 +70,7 @@ def file_deal(file):
                 elif num == 3:
                     num = 270
                 flag = 0
-                with open(file="file/{0}.csv".format(file+"_"+str(i)), mode="r",encoding="gbk") as f:
+                with open(file="file/{0}_bak.csv".format(file), mode="r",encoding="gbk") as f:
                     reg = re.compile("(2017\d{4})")
                     for line in f.readlines():
                         for each_date in re.findall(reg,line):
@@ -85,6 +83,7 @@ def file_deal(file):
                             f_origin.write(line)
                         flag = 1
         print("Deal file {0} Successfully.".format(file))
+        os.remove("file/{0}_bak.csv".format(file))
     except UnicodeDecodeError as e:
         print("Deal file {0} Error.".format(file))
         print(str(e))
@@ -99,7 +98,8 @@ trading_day_2017 = get_all_trading_dates_of_a_certain_year(year="2017")
 trading_day_2018 = get_all_trading_dates_of_a_certain_year(year="2018")
 trading_day = trading_day_2017+trading_day_2018
 
-except_csv_files = ["his_asset.csv","his_assetdebit.csv","clientinfo.csv","his_datafund.csv","his_datastock.csv"]
+except_csv_files = ["his_asset.csv","his_assetdebit.csv","clientinfo.csv","his_datafund.csv","his_datastock.csv",\
+                    "his_deliver.csv","his_fundjour.csv","his_price.csv","stkcode.csv"]
 del_csv_file()
 for file in which_csv():
     file_deal(file)
