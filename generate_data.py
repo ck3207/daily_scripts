@@ -5,6 +5,7 @@ import random,datetime,time
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 def get_cols(table):
      """通用造数据函数"""
      sql = "desc " + table
@@ -90,6 +91,8 @@ def generate_data_for_mysqldb(columns,commit_num,commit_times):
 =======
 =======
 >>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
+=======
+>>>>>>> b0fdffd83922f86a16c764544f27038b0bffc487
 class Generate_Data:
     def get_cols(self,table):
          """获取表字段名、字段类型"""
@@ -221,9 +224,12 @@ class Generate_Data:
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
 =======
 >>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
+=======
+>>>>>>> b0fdffd83922f86a16c764544f27038b0bffc487
 
 def get_date(num=0):
     """获取今日日期"""
@@ -240,12 +246,16 @@ def get_time():
 if __name__ == "__main__":
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     # 连接数据库
 >>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
 =======
     # 连接数据库
 >>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
+=======
+    # 连接数据库
+>>>>>>> b0fdffd83922f86a16c764544f27038b0bffc487
     connect_mysql = Connect_mysql()
     mysql_config = connect_mysql.get_config("mysql_config.json")
     conn, cur = connect_mysql.conn_mysql(host=mysql_config["localhost_cf_test"]["host"],
@@ -257,6 +267,7 @@ if __name__ == "__main__":
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     # tables = ["all_securate_test","businflag_test"]
     tables = ["smart_organization_forecast_copy","investor","test"]
     for table in tables:
@@ -265,6 +276,8 @@ if __name__ == "__main__":
 =======
 =======
 >>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
+=======
+>>>>>>> b0fdffd83922f86a16c764544f27038b0bffc487
     generate_data = Generate_Data()
     tables = ["portrait_all","portrait_fund"]   # 配置需要插入数据的表名
     # 配置各表关联字段的关系,值相同的键为关联字段 eg: linkfield_judge = {"fund_account":0,"client_id":0, "client_name":1}
@@ -279,7 +292,10 @@ if __name__ == "__main__":
         cols = generate_data.get_cols(table)    # 获取表字段
         generate_data.generate_data_for_mysqldb(columns=cols,commit_num=10,commit_times=5)  # 生成数据
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
 =======
 >>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
+=======
+>>>>>>> b0fdffd83922f86a16c764544f27038b0bffc487
 

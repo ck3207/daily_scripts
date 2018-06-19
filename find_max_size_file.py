@@ -87,6 +87,7 @@ if __name__ == "__main__":
     for key,value in sorted(rank_dic.items(),key=lambda d:d[0],reverse=True):
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         print(value, humanble_size(key))
 =======
         print(value.replace("//","\\"), humanble_size(key))
@@ -94,6 +95,9 @@ if __name__ == "__main__":
 =======
         print(value.replace("//","\\"), humanble_size(key))
 >>>>>>> bf1d6521452718089e453e51f4e7909361dbab89
+=======
+        print(value.replace("//","\\"), humanble_size(key))
+>>>>>>> b0fdffd83922f86a16c764544f27038b0bffc487
 
 # More details you can Browse Blog
 # http://blog.csdn.net/ck3207/article/details/79392505
