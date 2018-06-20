@@ -61,8 +61,7 @@ class Connect_to_sql:
                 print("Connect to mysql Error!")
                 print(str(e))
 
-        self.get_all_tables(db_type=db_type)
-        return conn, cur
+        return self.get_all_tables(db_type=db_type)
 
     def disconnect(self, flag=False):
         if conn !=0 and cur != 0:
@@ -78,68 +77,89 @@ class Connect_to_sql:
         elif db_type == "oracle":
             sql = "select table_name from user_tables"
         cur.execute(sql)
-        v = IntVar()
-        table_name = StringVar()
-        table_num = 0
-        columnspan = 3
         for table in cur.fetchall():
-            table_name = table
-            row = table_num % 15
-            column = table_num // 15
-            Checkbutton(master, width=25,text=table_name, padx=10,pady=5, anchor=W)\
-                .grid(padx=20,pady=5,row=row,column=11*column,columnspan=10*(column+1), sticky=W)
-            table_num += 1
             self.tables.append(table[0])
-        print("How many tables? The answer is:",str(table_num))
+        return self.tables
+
+    def create_new_page(self):
+        top = Toplevel(master)
+        top.state("zoomed")
+        return top
+
 
 class Display:
     def __init__(self):
         master.state("zoomed")
 
     def get_configure_page(self):
-        top = Toplevel(master,relief=SUNKEN)
+        top = Toplevel(master, relief=SUNKEN)
         top.title("数据库配置")
         # new window on the top layer
         top.resizable(0,0)
-        top.attributes("-toolwindow",1)
+        top.attributes("-toolwindow", 1)
         top.wm_attributes("-topmost", 1)
         # top.grid()
         self.center_window(top, 500, 400)
-        b = Button(top,text="选择配置", command=lambda:self.get_db_configure(top,b))
-        b.grid(padx=200,pady=5,ipadx=20,ipady=20)
+        b = Button(top, text="选择配置", command=lambda: self.get_db_configure(top, b))
+        b.grid(padx=200, pady=5, ipadx=20,ipady=20)
 
     def table_select_page(self, top, conn_name):
         """"""
         top.withdraw()
-        connect_to_sql.connect_db(conn_name=conn_name)
-        Label(master,text="数据库配置", padx=10,pady=5,font="宋体,18", width=100,height=60)
+        tables = connect_to_sql.connect_db(conn_name=conn_name)
+        v = IntVar()
+        v = 0
+        table_num = 0
+        width = master.winfo_width()
+        height = master.winfo_height()
+        # print(width, height)
+        rows = height // 50
+        columns = width // 300
+        for table in tables:
+            table_name = table
+            row = table_num % rows
+            column = table_num // rows
+            if column > columns:
+                pass
+                # print(tables[:])
+                # Button(master,text="下一页").grid(padx=200, pady=5, ipadx=20, ipady=20, row=rows+1, column=columns)
+                # table_num -= row*(columns-1)
+                # Checkbutton(master, width=25, text=table_name, variable=v, padx=10, pady=5, anchor=W).\
+                #     grid(padx=20, pady=5, row=row, column=column-columns-1, sticky=W)
+            else:
+                Checkbutton(master, width=25, text=table_name, variable=v, padx=10, pady=5, anchor=W).\
+                    grid(padx=20, pady=5, row=row, column=column, sticky=W)
 
-    def get_logic_configure_page(self):
-        pass
+            table_num += 1
+            v += 1
+        Button(master,text="下一步",command=self.set_logic_configure_page)\
+            .grid(padx=200, pady=5, ipadx=20, ipady=20, row=rows+1, column=columns)
 
-    def get_db_configure2(self):
-        pass
+
+    def set_logic_configure_page(self):
+        master.children()
+        Label(master, text="逻辑规则", anchor=W).grid(padx=20, pady=5, ipadx=20, ipady=20,row=0,column=2, sticky=W)
+        Label(master, text="常量设置", anchor=W).grid(padx=20, pady=5, ipadx=20, ipady=20,row=0,column=12, sticky=W)
 
     def get_db_configure(self, top, Button_obj):
         global f_json
         with open("db_config.json", "r") as f:
             f_json = json.load(f)
-        print(f_json)
         sb = Scrollbar(top)
-        sb.grid(row=7,rowspan=20,sticky=E+N+S)
+        sb.grid(row=7, rowspan=20, sticky=E+N+S)
         # 联动设置,当Listbox 视野发生变化时，执行yscrollcommand=sb.set通知到Scrobar
         v = StringVar
-        l = Listbox(top, width=67,height=17,selectmode=BROWSE, yscrollcommand=sb.set, listvariable=v)
+        l = Listbox(top, width=67, height=17, selectmode=BROWSE, yscrollcommand=sb.set, listvariable=v)
         l.bind('<Double-Button-1>', func=self.handlerAdaptor(self.handler, lb=l, top=top))
         for name in f_json:
             name = "连接名：{0}, 地址：{1}".format(name,f_json[name]["host"])
             l.insert(END,name)
-        l.grid(row=7,rowspan=20,columnspan=10,padx=5,pady=2,sticky=N+S+W)
+        l.grid(row=7,rowspan=20, columnspan=10, padx=5, pady=2, sticky=N+S+W)
         # 联动设置,用户操作滚动条时，执行l.yview方法通知Listbox
         sb.config(command=l.yview)
         Button_obj.config(state=DISABLED)
 
-    def handler(self,event, top, lb):
+    def handler(self, event, top, lb):
         """事件处理函数"""
         global db_type
         content = lb.get(lb.curselection())
@@ -151,7 +171,7 @@ class Display:
         """事件处理函数的适配器，相当于中介，那个event是从那里来的呢，我也纳闷，这也许就是python的伟大之处吧"""
         return lambda event, fun=fun, kwds=kwds: fun(event, **kwds)
 
-    def center_window(self,master,w, h):
+    def center_window(self, master, w, h):
         # 获取屏幕 宽、高
         ws = master.winfo_screenwidth()
         hs = master.winfo_screenheight()
@@ -162,6 +182,7 @@ class Display:
         # master.deiconify()
 
 f_json = ""
+conn,cur = 0,0
 master = Tk()
 master.title("数据生成工具")
 connect_to_sql = Connect_to_sql()
@@ -189,7 +210,6 @@ display.get_configure_page()
 # Label(master, width=150, height=35).grid(row=3,rowspan=30,column=0,columnspan=30)
 #
 # connect_to_sql = Connect_to_sql()
-conn,cur = 0,0
 #
 # v = IntVar()
 # DB_TYPE = {0:"mysql", 1:"oracle"}
