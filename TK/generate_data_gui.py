@@ -1,37 +1,46 @@
 # -*- coding: utf-8 -*-
 __author__ = "chenk"
 import re
-import pymysql
 from tkinter import *
+import json
 
-import cx_Oracle
+# import cx_Oracle
+import pymysql
+
 
 class Connect_to_sql:
     def __init__(self):
         self.host = ""
         self.port = ""
         self.username = ""
+        self.password = ""
         self.database = ""
         self.charset = ""
         self.tables = list()
 
-    def get_url(self):
-        url = e1.get()
-        self.host = re.search("//(.+?):", url).group(1)
-        try:
-            self.port = int(re.search(":(\d+)", url).group(1))
-        except AttributeError:
-            self.port = 80
-        self.charset = re.search("charset=(.+)", url).group(1).replace("-","")
-        self.database = re.search(":\d*/(.+?)\?", url[8:]).group(1)
-        self.username = e2.get()
-        self.password = e3.get()
+    # def get_url(self):
+    #     url = e1.get()
+    #     self.host = re.search("//(.+?):", url).group(1)
+    #     try:
+    #         self.port = int(re.search(":(\d+)", url).group(1))
+    #     except AttributeError:
+    #         self.port = 80
+    #     self.charset = re.search("charset=(.+)", url).group(1).replace("-","")
+    #     self.database = re.search(":\d*/(.+?)\?", url[8:]).group(1)
+    #     self.username = e2.get()
+    #     self.password = e3.get()
 
-    def connect_db(self,db_type="mysql"):
+    def connect_db(self,conn_name):
         self.disconnect()
-        self.get_url()
+        self.host = f_json[conn_name]["host"]
+        self.port = f_json[conn_name]["port"]
+        self.username = f_json[conn_name]["user"]
+        self.password = f_json[conn_name]["password"]
+        self.database = f_json[conn_name]["database"]
+        self.charset = f_json[conn_name]["charset"]
+        db_type = f_json[conn_name]["db_type"]
         global conn,cur
-        if DB_TYPE[v.get()] == "mysql":
+        if db_type == "mysql":
             try:
                 conn = pymysql.connect(host=self.host,port=self.port,user=self.username,\
                                                     password=self.password,database=self.database,charset=self.charset)
@@ -40,7 +49,7 @@ class Connect_to_sql:
             except Exception as e:
                 print("Connect to mysql Error!")
                 print(str(e))
-        elif DB_TYPE[v.get()] == "oracle":
+        elif db_type == "oracle":
             """username/password@host:port/database"""
             try:
                 url = "{0}/{1}@{2}:{3}/{4}".format(self.username,self.password,self.host,self.port,self.database)
@@ -52,8 +61,7 @@ class Connect_to_sql:
                 print("Connect to mysql Error!")
                 print(str(e))
 
-        self.get_all_tables(db_type=DB_TYPE[v.get()])
-
+        self.get_all_tables(db_type=db_type)
         return conn, cur
 
     def disconnect(self, flag=False):
@@ -76,46 +84,72 @@ class Connect_to_sql:
         columnspan = 3
         for table in cur.fetchall():
             table_name = table
-            row = table_num // 3
-            column = table_num % 3
-            Checkbutton(master, text=table_name, padx=10,pady=5)\
-                .grid(row=row+5, column=column*columnspan, columnspan=columnspan, sticky=W)
+            row = table_num % 15
+            column = table_num // 15
+            Checkbutton(master, width=25,text=table_name, padx=10,pady=5, anchor=W)\
+                .grid(padx=20,pady=5,row=row,column=11*column,columnspan=10*(column+1), sticky=W)
             table_num += 1
             self.tables.append(table[0])
-
-    def get_value(self):
-        print(v.get())
-        return v.get()
+        print("How many tables? The answer is:",str(table_num))
 
 class Display:
     def __init__(self):
         master.state("zoomed")
-        Label(master,text="hello")
 
     def get_configure_page(self):
         top = Toplevel(master,relief=SUNKEN)
         top.title("数据库配置")
-        top.geometry("500x400")
-        top.grid()
+        # new window on the top layer
+        top.resizable(0,0)
+        top.attributes("-toolwindow",1)
+        top.wm_attributes("-topmost", 1)
+        # top.grid()
         self.center_window(top, 500, 400)
-        Button(top,text="选择配置", command=lambda:self.get_db_configure(top),pady=10).grid()
-        # Label(master, text="数据库配置", padx=10, pady=5, width=10, height=5, font="宋体,18")\
-        #     .grid(row=0,rowspan=2,column=0,columnspan=2)
-        # Button(master, text="选择配置", padx=10, pady=5, font="宋体,18", \
-        #        width=10,height=5, command=self.get_db_configure,bg="grey").grid(row=2,column=2)
+        b = Button(top,text="选择配置", command=lambda:self.get_db_configure(top,b))
+        b.grid(padx=200,pady=5,ipadx=20,ipady=20)
 
-    def table_select_page(self):
+    def table_select_page(self, top, conn_name):
         """"""
+        top.withdraw()
+        connect_to_sql.connect_db(conn_name=conn_name)
         Label(master,text="数据库配置", padx=10,pady=5,font="宋体,18", width=100,height=60)
 
     def get_logic_configure_page(self):
         pass
 
-    def get_db_configure(self,master):
-        l = Listbox(master,setgrid=False,selectmode=BROWSE)
-        for item in ["a","b","c"]:
-            l.insert(END,item)
-            l.grid()
+    def get_db_configure2(self):
+        pass
+
+    def get_db_configure(self, top, Button_obj):
+        global f_json
+        with open("db_config.json", "r") as f:
+            f_json = json.load(f)
+        print(f_json)
+        sb = Scrollbar(top)
+        sb.grid(row=7,rowspan=20,sticky=E+N+S)
+        # 联动设置,当Listbox 视野发生变化时，执行yscrollcommand=sb.set通知到Scrobar
+        v = StringVar
+        l = Listbox(top, width=67,height=17,selectmode=BROWSE, yscrollcommand=sb.set, listvariable=v)
+        l.bind('<Double-Button-1>', func=self.handlerAdaptor(self.handler, lb=l, top=top))
+        for name in f_json:
+            name = "连接名：{0}, 地址：{1}".format(name,f_json[name]["host"])
+            l.insert(END,name)
+        l.grid(row=7,rowspan=20,columnspan=10,padx=5,pady=2,sticky=N+S+W)
+        # 联动设置,用户操作滚动条时，执行l.yview方法通知Listbox
+        sb.config(command=l.yview)
+        Button_obj.config(state=DISABLED)
+
+    def handler(self,event, top, lb):
+        """事件处理函数"""
+        global db_type
+        content = lb.get(lb.curselection())
+        name = content.split(", 地址")[0][4:]
+        # print(name)
+        self.table_select_page(top, name)
+
+    def handlerAdaptor(self,fun, **kwds):
+        """事件处理函数的适配器，相当于中介，那个event是从那里来的呢，我也纳闷，这也许就是python的伟大之处吧"""
+        return lambda event, fun=fun, kwds=kwds: fun(event, **kwds)
 
     def center_window(self,master,w, h):
         # 获取屏幕 宽、高
@@ -125,11 +159,12 @@ class Display:
         x = (ws / 2) - (w / 2)
         y = (hs / 2) - (h / 2)
         master.geometry('%dx%d+%d+%d' % (w, h, x, y))
+        # master.deiconify()
 
+f_json = ""
 master = Tk()
-# master.minsize(800,300)
-# master.maxsize(1366,768)
 master.title("数据生成工具")
+connect_to_sql = Connect_to_sql()
 display = Display()
 display.get_configure_page()
 
@@ -154,7 +189,7 @@ display.get_configure_page()
 # Label(master, width=150, height=35).grid(row=3,rowspan=30,column=0,columnspan=30)
 #
 # connect_to_sql = Connect_to_sql()
-# conn,cur = 0,0
+conn,cur = 0,0
 #
 # v = IntVar()
 # DB_TYPE = {0:"mysql", 1:"oracle"}
