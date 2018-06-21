@@ -2,7 +2,9 @@
 __author__ = "chenk"
 import re
 from tkinter import *
+from tkinter import ttk
 import json
+import random
 
 # import cx_Oracle
 import pymysql
@@ -90,6 +92,8 @@ class Connect_to_sql:
 class Display:
     def __init__(self):
         master.state("zoomed")
+        self.v = IntVar()
+        self.examples = ["例如：A.col1 + A.col2 = A.col3", "例如：A.col1 + B.col2 = A.col3"]
 
     def get_configure_page(self):
         top = Toplevel(master, relief=SUNKEN)
@@ -107,39 +111,70 @@ class Display:
         """"""
         top.withdraw()
         tables = connect_to_sql.connect_db(conn_name=conn_name)
-        v = IntVar()
-        v = 0
-        table_num = 0
+        v = 100
         width = master.winfo_width()
         height = master.winfo_height()
-        # print(width, height)
         rows = height // 50
-        columns = width // 300
-        for table in tables:
-            table_name = table
-            row = table_num % rows
-            column = table_num // rows
-            if column > columns:
-                pass
-                # print(tables[:])
-                # Button(master,text="下一页").grid(padx=200, pady=5, ipadx=20, ipady=20, row=rows+1, column=columns)
-                # table_num -= row*(columns-1)
-                # Checkbutton(master, width=25, text=table_name, variable=v, padx=10, pady=5, anchor=W).\
-                #     grid(padx=20, pady=5, row=row, column=column-columns-1, sticky=W)
-            else:
-                Checkbutton(master, width=25, text=table_name, variable=v, padx=10, pady=5, anchor=W).\
-                    grid(padx=20, pady=5, row=row, column=column, sticky=W)
+        columns = width // 250
+        pages = len(tables) // (rows*columns)
+        if len(tables) % (rows*columns) == 0:
+            pass
+        else:
+            pages += 1
+        tab_control = ttk.Notebook(master)
+        for page in range(pages):
+            tab = ttk.Frame(tab_control)  # Add a tab
+            tab_control.add(tab, text='第{0}页'.format(str(page)))  # Make second tab visible
+            tab_control.grid(row=0, column=0, padx=10, pady=5, ipadx=10, ipady=5)
+            table_num = 0
+            page += 1
+            for table in tables[(page-1)*rows*columns:page*rows*columns]:
+                table_name = table
+                row = table_num % rows
+                column = table_num // rows
+                t = ttk.Checkbutton(tab, width=25, text=table_name, variable=self.v, onvalue=1,offvalue=0,\
+                                command=lambda: self.demo())
 
-            table_num += 1
-            v += 1
-        Button(master,text="下一步",command=self.set_logic_configure_page)\
-            .grid(padx=200, pady=5, ipadx=20, ipady=20, row=rows+1, column=columns)
+                t.grid(padx=20, pady=5, row=row, column=column, sticky=W)
+                table_num += 1
+                v += 1
 
+        next = Button(master,text="下一步",command=lambda: self.set_logic_configure_page(tab_control, next))
+        next.grid(padx=20, pady=5, ipadx=20, ipady=20, row=rows+1)
 
-    def set_logic_configure_page(self):
-        master.children()
-        Label(master, text="逻辑规则", anchor=W).grid(padx=20, pady=5, ipadx=20, ipady=20,row=0,column=2, sticky=W)
-        Label(master, text="常量设置", anchor=W).grid(padx=20, pady=5, ipadx=20, ipady=20,row=0,column=12, sticky=W)
+        # tab1 = ttk.Frame(tab_control)  # Create a tab
+        # tab_control.add(tab1, text='Tab 1')  # Add the tab
+        # tab_control.grid(row=0,column=0,padx=10,pady=5, ipadx=10, ipady=5)
+        #
+        # tab2 = ttk.Frame(tab_control)  # Add a second tab
+        # tab_control.add(tab2, text='Tab 2')  # Make second tab visible
+        #
+        # monty = ttk.LabelFrame(tab1, text=' Monty Python ')
+        # monty.grid(column=0, row=0, padx=8, pady=4)
+        # ttk.Label(monty, text="Enter a name:").grid(column=0, row=0,
+        #                                             sticky='W')
+    def demo(self):
+        pass
+
+    def set_logic_configure_page(self, tab, b):
+        tab.destroy()
+        b.destroy()
+        Button(master, text="+", command=self.add_logic_entry(flag=True)).grid(row=0,column=0, padx=10, pady=5, ipadx=10, ipady=10, sticky=W)
+        Label(master, text="逻辑规则").grid(row=0, column=1, padx=10, pady=5, ipadx=10, ipady=10, sticky=W)
+        Button(master, text="+", command=self.add_logic_entry(flag=False)).grid(row=1, column=0, padx=10, pady=5, ipadx=10, ipady=10, sticky=W)
+        Label(master, text="常量设置").grid(row=1, column=1, padx=10, pady=5, ipadx=10, ipady=10, sticky=W)
+
+        # self.v.set(1)
+        # tab_control = ttk.Notebook(master)
+        # tab1 = ttk.Frame(tab_control)
+        # tab_control.add(tab1,text="tab1")
+        # ttk.Label(tab1, text="逻辑规则", anchor=W).grid(padx=20, pady=5, ipadx=20, ipady=20,row=0,column=2, sticky=W)
+        # ttk.Label(tab1, text="常量设置", anchor=W).grid(padx=20, pady=5, ipadx=20, ipady=20,row=0,column=12, sticky=W)
+    def add_logic_entry(self, flag=False):
+        if not flag:
+            Entry(master, text=random.choice(self.examples)).grid()
+        else:
+            Entry(master, text="A.status = 5").grid()
 
     def get_db_configure(self, top, Button_obj):
         global f_json
