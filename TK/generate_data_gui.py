@@ -93,7 +93,13 @@ class Display:
     def __init__(self):
         master.state("zoomed")
         self.v = IntVar()
+        self.var = StringVar()
+        self.table = StringVar()
         self.examples = ["例如：A.col1 + A.col2 = A.col3", "例如：A.col1 + B.col2 = A.col3"]
+        self.logic_set_row_left = 0
+        self.logic_set_row_right = 0
+        self.entry = ""
+        # self.demo = list()
 
     def get_configure_page(self):
         top = Toplevel(master, relief=SUNKEN)
@@ -111,6 +117,8 @@ class Display:
         """"""
         top.withdraw()
         tables = connect_to_sql.connect_db(conn_name=conn_name)
+        for vv in range(len(tables)):
+            vv = IntVar()
         v = 100
         width = master.winfo_width()
         height = master.winfo_height()
@@ -129,12 +137,17 @@ class Display:
             table_num = 0
             page += 1
             for table in tables[(page-1)*rows*columns:page*rows*columns]:
-                table_name = table
+                vv = IntVar()
+                # self.v.set(v)
+                self.var.set(table)
                 row = table_num % rows
                 column = table_num // rows
-                t = ttk.Checkbutton(tab, width=25, text=table_name, variable=self.v, onvalue=1,offvalue=0,\
-                                command=lambda: self.demo())
-
+                t = ttk.Checkbutton(tab, width=25, text=self.var.get(), variable=vv, onvalue=1, offvalue=0,\
+                                command=lambda: self.demo(vv))
+                # self.demo.append(t.widgetName)
+                # print(vv.get())
+                # print(t.widgetName)
+                # self.v.set(0)
                 t.grid(padx=20, pady=5, row=row, column=column, sticky=W)
                 table_num += 1
                 v += 1
@@ -153,28 +166,36 @@ class Display:
         # monty.grid(column=0, row=0, padx=8, pady=4)
         # ttk.Label(monty, text="Enter a name:").grid(column=0, row=0,
         #                                             sticky='W')
-    def demo(self):
-        pass
+    def demo(self, vv):
+        print(vv.get())
+        print(self.var.get())
 
     def set_logic_configure_page(self, tab, b):
         tab.destroy()
         b.destroy()
-        Button(master, text="+", command=self.add_logic_entry(flag=True)).grid(row=0,column=0, padx=10, pady=5, ipadx=10, ipady=10, sticky=W)
-        Label(master, text="逻辑规则").grid(row=0, column=1, padx=10, pady=5, ipadx=10, ipady=10, sticky=W)
-        Button(master, text="+", command=self.add_logic_entry(flag=False)).grid(row=1, column=0, padx=10, pady=5, ipadx=10, ipady=10, sticky=W)
-        Label(master, text="常量设置").grid(row=1, column=1, padx=10, pady=5, ipadx=10, ipady=10, sticky=W)
+        Button(master, text="+", command=lambda: self.add_logic_entry(flag=True), width=5)\
+            .grid(row=self.logic_set_row_left,column=0, padx=10, pady=5, ipadx=10, ipady=10)
+        Label(master, text="逻辑规则", width=10).grid(row=self.logic_set_row_left, column=1, padx=10, pady=5, ipadx=10, ipady=10)
+        Button(master, text="+", command=lambda: self.add_logic_entry(flag=False), width=5)\
+            .grid(row=self.logic_set_row_right, column=50, padx=10, pady=5, ipadx=10, ipady=10, sticky=E)
+        Label(master, text="常量设置", width=10).grid(row=self.logic_set_row_right, column=51, padx=10, pady=5, ipadx=10, ipady=10, sticky=E)
 
-        # self.v.set(1)
-        # tab_control = ttk.Notebook(master)
-        # tab1 = ttk.Frame(tab_control)
-        # tab_control.add(tab1,text="tab1")
-        # ttk.Label(tab1, text="逻辑规则", anchor=W).grid(padx=20, pady=5, ipadx=20, ipady=20,row=0,column=2, sticky=W)
-        # ttk.Label(tab1, text="常量设置", anchor=W).grid(padx=20, pady=5, ipadx=20, ipady=20,row=0,column=12, sticky=W)
     def add_logic_entry(self, flag=False):
+        if not isinstance(self.entry, str):
+            print(self.entry.get())
         if not flag:
-            Entry(master, text=random.choice(self.examples)).grid()
+            self.logic_set_row_left += 1
+            self.entry = Entry(master, text=random.choice(self.examples), width=60)
+            self.entry.delete(0, END)
+            self.entry.grid(row=self.logic_set_row_left, pady=5)
         else:
-            Entry(master, text="A.status = 5").grid()
+            self.logic_set_row_right += 1
+            self.entry = Entry(master, text="A.status = 5", width=60)
+            self.entry.delete(0, END)
+            self.entry.grid(row=self.logic_set_row_right, column=50, pady=5)
+        # if not self.entry.get():
+        #     self.entry.delete(0, END)
+        self.entry.focus()
 
     def get_db_configure(self, top, Button_obj):
         global f_json
@@ -223,39 +244,5 @@ master.title("数据生成工具")
 connect_to_sql = Connect_to_sql()
 display = Display()
 display.get_configure_page()
-
-# master.state("zoomed")
-# Label(master, padx=10, pady=5, text="数据库地址：").grid(row=0,sticky=W)
-# Label(master, padx=10, pady=5, text="用  户  名:").grid(row=1,sticky=W)
-# Label(master, padx=10, pady=5, text="密      码:").grid(row=2,sticky=W)
-#
-# e1 = Entry(master, width=80)
-# e2 = Entry(master, width=80)
-# e3 = Entry(master, width=80, show="*")
-#
-# # Typesetting
-# e1.grid(row=0,column=1,columnspan=8,padx=10,pady=5,sticky=W)
-# e2.grid(row=1,column=1,columnspan=8,padx=10,pady=5,sticky=W)
-# e3.grid(row=2,column=1,columnspan=8,padx=10,pady=5,sticky=W)
-#
-# # example
-# e1.insert(0,"http://127.0.0.1:3306/cf_test?charset=utf-8")
-# e2.insert(0,"root")
-# e3.insert(0,"123456")
-# Label(master, width=150, height=35).grid(row=3,rowspan=30,column=0,columnspan=30)
-#
-# connect_to_sql = Connect_to_sql()
-#
-# v = IntVar()
-# DB_TYPE = {0:"mysql", 1:"oracle"}
-# for key,value in DB_TYPE.items():
-#     Radiobutton(master, text=value,variable=v,value=key).grid(row=3,column=key,sticky=W)
-#
-# b3 = Button(master, text="OK", command=lambda:connect_to_sql.connect_db("mysql"), width=10, height=5)\
-#     .grid(row=0,column=9,rowspan=3,sticky=W,padx=10,pady=5)
-# b4 = Button(master, text="QUIT", command=lambda :connect_to_sql.disconnect(flag=True), width=10)\
-#     .grid(row=3,column=9,sticky=W,padx=10,pady=5)
-#
-# Label(master,text="配置表关系", font=("宋体",16)).grid(row=4, column=0, columnspan=2, sticky=W,padx=10,pady=5)
 
 mainloop()
