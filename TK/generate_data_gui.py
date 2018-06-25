@@ -3,6 +3,7 @@ __author__ = "chenk"
 import re
 from tkinter import *
 from tkinter import ttk
+from tkinter import messagebox
 import json
 import random
 
@@ -32,8 +33,8 @@ class Connect_to_sql:
     #     self.username = e2.get()
     #     self.password = e3.get()
 
-    def connect_db(self,conn_name):
-        self.disconnect()
+    def connect_db(self,conn_name, top):
+        # self.disconnect()
         self.host = f_json[conn_name]["host"]
         self.port = f_json[conn_name]["port"]
         self.username = f_json[conn_name]["user"]
@@ -41,39 +42,39 @@ class Connect_to_sql:
         self.database = f_json[conn_name]["database"]
         self.charset = f_json[conn_name]["charset"]
         db_type = f_json[conn_name]["db_type"]
-        global conn,cur
+        global conn, cur
         if db_type == "mysql":
             try:
-                conn = pymysql.connect(host=self.host,port=self.port,user=self.username,\
-                                                    password=self.password,database=self.database,charset=self.charset)
+                conn = pymysql.connect(host=self.host, port=self.port, user=self.username,\
+                                                    password=self.password, database=self.database, charset=self.charset)
                 cur = conn.cursor()
                 print("Connect to mysql successfully!")
             except Exception as e:
-                print("Connect to mysql Error!")
-                print(str(e))
+                messagebox.showerror(title="数据库连接错误", message=str(e), parent=top, icon="error")
+                return
+
         elif db_type == "oracle":
             """username/password@host:port/database"""
             try:
-                url = "{0}/{1}@{2}:{3}/{4}".format(self.username,self.password,self.host,self.port,self.database)
+                url = "{0}/{1}@{2}:{3}/{4}".format(self.username, self.password, self.host, self.port, self.database)
                 # print(url)
                 conn = cx_Oracle.connect(url)
                 cur = conn.cursor()
                 print("Connect to oracle successfully!")
             except Exception as e:
-                print("Connect to mysql Error!")
-                print(str(e))
+                messagebox.showerror(title="数据库连接错误", message=str(e), parent=top)
+                return
 
         return self.get_all_tables(db_type=db_type)
 
-    def disconnect(self, flag=False):
-        if conn !=0 and cur != 0:
-            cur.close()
-            conn.close()
-            print("Connection break!")
-        if flag == True:
-            master.destroy()
+    def disconnect(self):
+        """Disconnect database and release resource. If flag is true, the program will be shutdown. """
+        cur.close()
+        conn.close()
+        master.destroy()
 
     def get_all_tables(self, db_type):
+        """This Function will return the tables in the current database. Now its only positive to Mysql and Oralce."""
         if db_type == "mysql":
             sql = "show tables"
         elif db_type == "oracle":
@@ -89,48 +90,47 @@ class Display:
         self.ws = master.winfo_screenwidth()
         self.hs = master.winfo_screenheight()
         self.hs -= 50
-        master.maxsize(self.ws,self.hs)
+        master.maxsize(self.ws,self.hs) # 设置最大屏幕尺寸
+        master.protocol("WM_DELETE_WINDOW", connect_to_sql.disconnect)    # 点击关闭按钮，退出程序
         # master.minsize(self.ws,self.hs)
         master.resizable(0, 0)
-        master.state("zoomed")
-        # self.v = IntVar()
-        # self.var = StringVar()
-        self.table = StringVar()
+        master.state("zoomed")  # 窗口最大化
         self.examples = ["例如：A.col1 + A.col2 = A.col3", "例如：A.col1 + B.col2 = A.col3"]
-        self.logic_set_row_left = 0
-        self.logic_set_row_right = 0
+        self.logic_set_row_left = 0 # 逻辑规则
+        self.logic_set_row_right = 0    # 常量设置
         self.entry = ""
-        self.checked_tables = list()
+        self.checked_tables = list()    # 选中表
         self.vs = list()    # Checkbutton
         self.svs = list()   # Entry
-        # self.demo = list()
 
     def get_configure_page(self):
         top = Toplevel(master, relief=SUNKEN)
         top.title("数据库配置")
+        top.protocol("WM_DELETE_WINDOW", master.quit)   # 点击右上角关闭按钮，即退出程序
         # new window on the top layer
-        top.resizable(0,0)
+        top.resizable(0,0)  # 大小不可变
         top.attributes("-toolwindow", 1)
         top.wm_attributes("-topmost", 1)
-        # top.grid()
+        top.grid()
         self.center_window(top, 500, 400)
         b = Button(top, text="选择配置", command=lambda: self.get_db_configure(top, b))
         b.grid(padx=200, pady=5, ipadx=20,ipady=20)
 
     def table_select_page(self, top, conn_name):
         """"""
-        top.withdraw()
-        tables = connect_to_sql.connect_db(conn_name=conn_name)
-        v = 100
-        width = master.winfo_width()
-        height = master.winfo_height()
-        rows = height // 45
-        columns = width // 250
+        tables = connect_to_sql.connect_db(conn_name=conn_name, top=top)
+        if tables:
+            top.withdraw()
+        # 粗略估计 最大行数、列数
+        rows = self.hs // 45
+        columns = self.ws // 250
+        # 分页处理
         pages = len(tables) // (rows*columns)
         if len(tables) % (rows*columns) == 0:
             pass
         else:
             pages += 1
+
         tab_control = ttk.Notebook(master)
         for page in range(pages):
             tab = ttk.Frame(tab_control)  # Add a tab
@@ -138,7 +138,12 @@ class Display:
             tab_control.grid(row=0, column=0, padx=10, pady=5, ipadx=10, ipady=5)
             table_num = 0
             page += 1
+            # 仅获取当前页需展示的表
             for table in tables[(page-1)*rows*columns:page*rows*columns]:
+                """
+                设置一个IntVar 并把该对象存放在self.vs列表中，在选择完毕后，
+                轮循self.vs表中的对象，获取其值来判断是否被选中
+                """
                 vv = IntVar()
                 row = table_num % rows
                 column = table_num // rows
@@ -146,7 +151,6 @@ class Display:
                 self.vs.append({table: vv})
                 t.grid(padx=20, pady=5, row=row, column=column, sticky=W)
                 table_num += 1
-                v += 1
 
         next = Button(master,text="下一步",command=lambda: self.set_logic_configure_page(tab_control, next))
         next.grid(padx=20, pady=20, ipadx=20, ipady=20, row=rows+1)
@@ -161,39 +165,49 @@ class Display:
         return
 
     def set_logic_configure_page(self, tab, b):
-        # frame = Frame(master)
+        frame = Frame(master)
+        frame.grid()
         self.get_select_tables()
         tab.destroy()
         b.destroy()
-        Button(master, text="+", command=lambda: self.add_logic_entry(flag=True), width=5)\
+        Button(frame, text="+", command=lambda: self.add_logic_entry(frame, flag=True), width=5)\
             .grid(row=self.logic_set_row_left,column=0, padx=10, pady=10, ipadx=10, ipady=10, sticky=E)
-        Label(master, text="逻辑规则", width=10)\
+        Label(frame, text="逻辑规则", width=10)\
             .grid(row=self.logic_set_row_left, column=1, padx=10, pady=10, ipadx=10, ipady=10, sticky=E)
-        Button(master, text="+", command=lambda: self.add_logic_entry(flag=False), width=5)\
+        Button(frame, text="+", command=lambda: self.add_logic_entry(frame, flag=False), width=5)\
             .grid(row=self.logic_set_row_right, column=80, padx=20, pady=10, ipadx=10, ipady=10)
-        Label(master, text="常量设置", width=10)\
+        Label(frame, text="常量设置", width=10)\
             .grid(row=self.logic_set_row_right, column=81, padx=20, pady=10, ipadx=10, ipady=10)
-
-        Button(master, text="提交", command=self.get_logic_setting, width=5)\
+        Button(frame, text="提交", command=self.get_logic_setting, width=5)\
             .grid(row=self.logic_set_row_left, column=161, padx=10, pady=10, ipadx=10, ipady=10, sticky=E)
 
-    def add_logic_entry(self, flag=False):
+
+    def add_logic_entry(self, frame, flag=False):
         sv = StringVar()
+        yview = None
         if not isinstance(self.entry, str):
             print(self.entry.get())
+        if (self.logic_set_row_left > self.hs//40 and flag == True) \
+                or (self.logic_set_row_right > self.hs//40 and flag == False):
+            messagebox.showwarning(title="Warning", \
+                                   message="每项规则最多能设置{}个条件".format(int(self.hs//40)), icon="warning")
+            return
+            # sb = Scrollbar(frame)
+            # sb.grid(row=1, rowspan=self.hs//40+3, column=165, sticky=E+NS)
+            # yview = sb.set
+            # sb.config(command=self.entry.yview)
         if flag:
             self.svs.append(["left", self.logic_set_row_left, sv])
             self.logic_set_row_left += 1
-            self.entry = Entry(master, textvariable=sv, width=80)
+            self.entry = Entry(frame, textvariable=sv, width=80, yscrollcommand=yview)
             self.entry.delete(0, END)
             self.entry.grid(row=self.logic_set_row_left, pady=5, column=0, columnspan=80, padx=20)
         else:
             self.svs.append(["right", self.logic_set_row_right, sv])
             self.logic_set_row_right += 1
-            self.entry = Entry(master, textvariable=sv, width=80)
+            self.entry = Entry(frame, textvariable=sv, width=80, yscrollcommand=yview)
             self.entry.delete(0, END)
             self.entry.grid(row=self.logic_set_row_right, column=80, columnspan=80, pady=5, padx=20)
-
         self.entry.focus()
 
     def get_logic_setting(self):
@@ -208,12 +222,12 @@ class Display:
         sb.grid(row=7, rowspan=20, sticky=E+N+S)
         # 联动设置,当Listbox 视野发生变化时，执行yscrollcommand=sb.set通知到Scrobar
         v = StringVar
-        l = Listbox(top, width=67, height=17, selectmode=BROWSE, yscrollcommand=sb.set, listvariable=v)
+        l = Listbox(top, width=67, height=17, selectmode=SINGLE, yscrollcommand=sb.set, listvariable=v)
         l.bind('<Double-Button-1>', func=self.handlerAdaptor(self.handler, lb=l, top=top))
         for name in f_json:
             name = "连接名：{0}, 地址：{1}".format(name,f_json[name]["host"])
-            l.insert(END,name)
-        l.grid(row=7,rowspan=20, columnspan=10, padx=5, pady=2, sticky=N+S+W)
+            l.insert(END, name)
+        l.grid(row=7, rowspan=20, columnspan=10, padx=5, pady=2, sticky=N+S+W)
         # 联动设置,用户操作滚动条时，执行l.yview方法通知Listbox
         sb.config(command=l.yview)
         Button_obj.config(state=DISABLED)
@@ -236,9 +250,13 @@ class Display:
         y = (self.hs / 2) - (h / 2)
         master.geometry('%dx%d+%d+%d' % (w, h, x, y))
         # master.deiconify()
+
+    def warning_message(self):
+        pass
+
 if __name__ == "__main__":
     f_json = ""
-    conn,cur = 0,0
+    conn, cur = 0, 0
     master = Tk()
     master.title("数据生成工具")
     connect_to_sql = Connect_to_sql()
