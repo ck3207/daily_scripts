@@ -6,7 +6,7 @@ from tkinter import ttk
 import json
 import random
 
-# import cx_Oracle
+import cx_Oracle
 import pymysql
 
 
@@ -83,22 +83,26 @@ class Connect_to_sql:
             self.tables.append(table[0])
         return self.tables
 
-    def create_new_page(self):
-        top = Toplevel(master)
-        top.state("zoomed")
-        return top
-
-
 class Display:
     def __init__(self):
+        # 获取屏幕 宽、高
+        self.ws = master.winfo_screenwidth()
+        self.hs = master.winfo_screenheight()
+        self.hs -= 50
+        master.maxsize(self.ws,self.hs)
+        # master.minsize(self.ws,self.hs)
+        master.resizable(0, 0)
         master.state("zoomed")
-        self.v = IntVar()
-        self.var = StringVar()
+        # self.v = IntVar()
+        # self.var = StringVar()
         self.table = StringVar()
         self.examples = ["例如：A.col1 + A.col2 = A.col3", "例如：A.col1 + B.col2 = A.col3"]
         self.logic_set_row_left = 0
         self.logic_set_row_right = 0
         self.entry = ""
+        self.checked_tables = list()
+        self.vs = list()    # Checkbutton
+        self.svs = list()   # Entry
         # self.demo = list()
 
     def get_configure_page(self):
@@ -117,12 +121,10 @@ class Display:
         """"""
         top.withdraw()
         tables = connect_to_sql.connect_db(conn_name=conn_name)
-        for vv in range(len(tables)):
-            vv = IntVar()
         v = 100
         width = master.winfo_width()
         height = master.winfo_height()
-        rows = height // 50
+        rows = height // 45
         columns = width // 250
         pages = len(tables) // (rows*columns)
         if len(tables) % (rows*columns) == 0:
@@ -138,64 +140,65 @@ class Display:
             page += 1
             for table in tables[(page-1)*rows*columns:page*rows*columns]:
                 vv = IntVar()
-                # self.v.set(v)
-                self.var.set(table)
                 row = table_num % rows
                 column = table_num // rows
-                t = ttk.Checkbutton(tab, width=25, text=self.var.get(), variable=vv, onvalue=1, offvalue=0,\
-                                command=lambda: self.demo(vv))
-                # self.demo.append(t.widgetName)
-                # print(vv.get())
-                # print(t.widgetName)
-                # self.v.set(0)
+                t = ttk.Checkbutton(tab, width=25, text=table, variable=vv, onvalue=1, offvalue=0)
+                self.vs.append({table: vv})
                 t.grid(padx=20, pady=5, row=row, column=column, sticky=W)
                 table_num += 1
                 v += 1
 
         next = Button(master,text="下一步",command=lambda: self.set_logic_configure_page(tab_control, next))
-        next.grid(padx=20, pady=5, ipadx=20, ipady=20, row=rows+1)
+        next.grid(padx=20, pady=20, ipadx=20, ipady=20, row=rows+1)
 
-        # tab1 = ttk.Frame(tab_control)  # Create a tab
-        # tab_control.add(tab1, text='Tab 1')  # Add the tab
-        # tab_control.grid(row=0,column=0,padx=10,pady=5, ipadx=10, ipady=5)
-        #
-        # tab2 = ttk.Frame(tab_control)  # Add a second tab
-        # tab_control.add(tab2, text='Tab 2')  # Make second tab visible
-        #
-        # monty = ttk.LabelFrame(tab1, text=' Monty Python ')
-        # monty.grid(column=0, row=0, padx=8, pady=4)
-        # ttk.Label(monty, text="Enter a name:").grid(column=0, row=0,
-        #                                             sticky='W')
-    def demo(self, vv):
-        print(vv.get())
-        print(self.var.get())
+    def get_select_tables(self):
+        for cb in self.vs:
+            for key,value in cb.items():
+                value = value.get()
+                if value == 1:
+                    print(key, value)
+                    self.checked_tables.append(key)
+        return
 
     def set_logic_configure_page(self, tab, b):
+        # frame = Frame(master)
+        self.get_select_tables()
         tab.destroy()
         b.destroy()
         Button(master, text="+", command=lambda: self.add_logic_entry(flag=True), width=5)\
-            .grid(row=self.logic_set_row_left,column=0, padx=10, pady=5, ipadx=10, ipady=10)
-        Label(master, text="逻辑规则", width=10).grid(row=self.logic_set_row_left, column=1, padx=10, pady=5, ipadx=10, ipady=10)
+            .grid(row=self.logic_set_row_left,column=0, padx=10, pady=10, ipadx=10, ipady=10, sticky=E)
+        Label(master, text="逻辑规则", width=10)\
+            .grid(row=self.logic_set_row_left, column=1, padx=10, pady=10, ipadx=10, ipady=10, sticky=E)
         Button(master, text="+", command=lambda: self.add_logic_entry(flag=False), width=5)\
-            .grid(row=self.logic_set_row_right, column=50, padx=10, pady=5, ipadx=10, ipady=10, sticky=E)
-        Label(master, text="常量设置", width=10).grid(row=self.logic_set_row_right, column=51, padx=10, pady=5, ipadx=10, ipady=10, sticky=E)
+            .grid(row=self.logic_set_row_right, column=80, padx=20, pady=10, ipadx=10, ipady=10)
+        Label(master, text="常量设置", width=10)\
+            .grid(row=self.logic_set_row_right, column=81, padx=20, pady=10, ipadx=10, ipady=10)
+
+        Button(master, text="提交", command=self.get_logic_setting, width=5)\
+            .grid(row=self.logic_set_row_left, column=161, padx=10, pady=10, ipadx=10, ipady=10, sticky=E)
 
     def add_logic_entry(self, flag=False):
+        sv = StringVar()
         if not isinstance(self.entry, str):
             print(self.entry.get())
-        if not flag:
+        if flag:
+            self.svs.append(["left", self.logic_set_row_left, sv])
             self.logic_set_row_left += 1
-            self.entry = Entry(master, text=random.choice(self.examples), width=60)
+            self.entry = Entry(master, textvariable=sv, width=80)
             self.entry.delete(0, END)
-            self.entry.grid(row=self.logic_set_row_left, pady=5)
+            self.entry.grid(row=self.logic_set_row_left, pady=5, column=0, columnspan=80, padx=20)
         else:
+            self.svs.append(["right", self.logic_set_row_right, sv])
             self.logic_set_row_right += 1
-            self.entry = Entry(master, text="A.status = 5", width=60)
+            self.entry = Entry(master, textvariable=sv, width=80)
             self.entry.delete(0, END)
-            self.entry.grid(row=self.logic_set_row_right, column=50, pady=5)
-        # if not self.entry.get():
-        #     self.entry.delete(0, END)
+            self.entry.grid(row=self.logic_set_row_right, column=80, columnspan=80, pady=5, padx=20)
+
         self.entry.focus()
+
+    def get_logic_setting(self):
+        for each in self.svs:
+            print(each[0], each[1], each[2].get())
 
     def get_db_configure(self, top, Button_obj):
         global f_json
@@ -228,21 +231,18 @@ class Display:
         return lambda event, fun=fun, kwds=kwds: fun(event, **kwds)
 
     def center_window(self, master, w, h):
-        # 获取屏幕 宽、高
-        ws = master.winfo_screenwidth()
-        hs = master.winfo_screenheight()
         # 计算 x, y 位置
-        x = (ws / 2) - (w / 2)
-        y = (hs / 2) - (h / 2)
+        x = (self.ws / 2) - (w / 2)
+        y = (self.hs / 2) - (h / 2)
         master.geometry('%dx%d+%d+%d' % (w, h, x, y))
         # master.deiconify()
+if __name__ == "__main__":
+    f_json = ""
+    conn,cur = 0,0
+    master = Tk()
+    master.title("数据生成工具")
+    connect_to_sql = Connect_to_sql()
+    display = Display()
+    display.get_configure_page()
 
-f_json = ""
-conn,cur = 0,0
-master = Tk()
-master.title("数据生成工具")
-connect_to_sql = Connect_to_sql()
-display = Display()
-display.get_configure_page()
-
-mainloop()
+    mainloop()
