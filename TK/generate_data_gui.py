@@ -5,7 +5,7 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 import json
-import random
+import  generate_data
 
 import cx_Oracle
 import pymysql
@@ -100,6 +100,7 @@ class Display:
         self.logic_set_row_right = 0    # 常量设置
         self.entry = ""
         self.checked_tables = list()    # 选中表
+        self.all_tables = list()
         self.vs = list()    # Checkbutton
         self.svs = list()   # Entry
 
@@ -118,15 +119,15 @@ class Display:
 
     def table_select_page(self, top, conn_name):
         """"""
-        tables = connect_to_sql.connect_db(conn_name=conn_name, top=top)
-        if tables:
+        self.all_tables = connect_to_sql.connect_db(conn_name=conn_name, top=top)
+        if self.all_tables:
             top.withdraw()
         # 粗略估计 最大行数、列数
         rows = self.hs // 45
         columns = self.ws // 250
         # 分页处理
-        pages = len(tables) // (rows*columns)
-        if len(tables) % (rows*columns) == 0:
+        pages = len(self.all_tables) // (rows*columns)
+        if len(self.all_tables) % (rows*columns) == 0:
             pass
         else:
             pages += 1
@@ -139,7 +140,7 @@ class Display:
             table_num = 0
             page += 1
             # 仅获取当前页需展示的表
-            for table in tables[(page-1)*rows*columns:page*rows*columns]:
+            for table in self.all_tables[(page-1)*rows*columns:page*rows*columns]:
                 """
                 设置一个IntVar 并把该对象存放在self.vs列表中，在选择完毕后，
                 轮循self.vs表中的对象，获取其值来判断是否被选中
@@ -187,15 +188,14 @@ class Display:
         yview = None
         if not isinstance(self.entry, str):
             print(self.entry.get())
+
+        # 条件个数做了限制
         if (self.logic_set_row_left > self.hs//40 and flag == True) \
                 or (self.logic_set_row_right > self.hs//40 and flag == False):
             messagebox.showwarning(title="Warning", \
                                    message="每项规则最多能设置{}个条件".format(int(self.hs//40)), icon="warning")
             return
-            # sb = Scrollbar(frame)
-            # sb.grid(row=1, rowspan=self.hs//40+3, column=165, sticky=E+NS)
-            # yview = sb.set
-            # sb.config(command=self.entry.yview)
+
         if flag:
             self.svs.append(["left", self.logic_set_row_left, sv])
             self.logic_set_row_left += 1
@@ -211,8 +211,37 @@ class Display:
         self.entry.focus()
 
     def get_logic_setting(self):
+        # frame = Frame(master)
+        # frame.grid()
         for each in self.svs:
             print(each[0], each[1], each[2].get())
+            self.validate_the_input(each[2].get())
+
+    def validate_the_input(self, entry="A1.COL1 + A2.COL2 = A3.COL3"):
+        """Extrat entry ==> A1.COL1||A2.COL2||A3.COL3, then split by || \
+        and judge each table.column whethor it is validate or not. """
+        operator = ["+", "-", "*", "/", "="]
+        entry.strip().replace(" ", "")
+        for each in operator:
+            entry_temp = ""
+            if each in entry:
+                for split in entry.split(each):
+                    entry_temp += split.strip() + "||"
+                entry = entry_temp[:-2]
+            operator.remove(each)
+        for each in entry.split("||"):
+            if each.strip() == "":
+                entry.remove(each)
+            else:
+                try:
+                    table = each.split(".")[0]
+                    if table not in self.all_tables:
+                        print("Table[{0}] is not found!".format(table))
+                    else:
+                        print(each, " passed!")
+                except IndexError:
+                    # messagebox.showerror(title="数据库连接错误", message=str(e), parent=top)
+                    print("Input is not valid, column should be Tables.Column!")
 
     def get_db_configure(self, top, Button_obj):
         global f_json
@@ -252,6 +281,13 @@ class Display:
         # master.deiconify()
 
     def warning_message(self):
+        pass
+
+class Extract_Columns_Relations:
+    def __init__(self):
+        pass
+
+    def extract_relations(self):
         pass
 
 if __name__ == "__main__":
