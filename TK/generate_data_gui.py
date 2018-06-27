@@ -62,7 +62,7 @@ class Connect_to_sql:
                 cur = conn.cursor()
                 print("Connect to oracle successfully!")
             except Exception as e:
-                messagebox.showerror(title="数据库连接错误", message=str(e), parent=top)
+                messagebox.showerror(title="数据库连接错误", message=str(e), parent=top, icon="error")
                 return
 
         return self.get_all_tables(db_type=db_type)
@@ -179,7 +179,7 @@ class Display:
             .grid(row=self.logic_set_row_right, column=80, padx=20, pady=10, ipadx=10, ipady=10)
         Label(frame, text="常量设置", width=10)\
             .grid(row=self.logic_set_row_right, column=81, padx=20, pady=10, ipadx=10, ipady=10)
-        Button(frame, text="提交", command=self.get_logic_setting, width=5)\
+        Button(frame, text="提交", command=lambda: self.get_logic_setting(frame), width=5)\
             .grid(row=self.logic_set_row_left, column=161, padx=10, pady=10, ipadx=10, ipady=10, sticky=E)
 
 
@@ -195,7 +195,6 @@ class Display:
             messagebox.showwarning(title="Warning", \
                                    message="每项规则最多能设置{}个条件".format(int(self.hs//40)), icon="warning")
             return
-
         if flag:
             self.svs.append(["left", self.logic_set_row_left, sv])
             self.logic_set_row_left += 1
@@ -210,12 +209,14 @@ class Display:
             self.entry.grid(row=self.logic_set_row_right, column=80, columnspan=80, pady=5, padx=20)
         self.entry.focus()
 
-    def get_logic_setting(self):
+    def get_logic_setting(self, frame):
         # frame = Frame(master)
         # frame.grid()
         for each in self.svs:
             print(each[0], each[1], each[2].get())
-            self.validate_the_input(each[2].get())
+            flag, error = self.validate_the_input(each[2].get())
+            if not flag:
+                messagebox.showerror(title="设置错误", message=error, icon="error", parent=frame)
 
     def validate_the_input(self, entry="A1.COL1 + A2.COL2 = A3.COL3"):
         """Extrat entry ==> A1.COL1||A2.COL2||A3.COL3, then split by || \
@@ -235,13 +236,17 @@ class Display:
             else:
                 try:
                     table = each.split(".")[0]
-                    if table not in self.all_tables:
-                        print("Table[{0}] is not found!".format(table))
-                    else:
-                        print(each, " passed!")
+                    if table not in self.checked_tables:
+                        if table not in self.all_tables:
+                            return 0, "Table[{0}] is not found!".format(table)
+                        else:
+                            self.checked_tables.append(table)
+                            print(each, " passed!")
                 except IndexError:
                     # messagebox.showerror(title="数据库连接错误", message=str(e), parent=top)
                     print("Input is not valid, column should be Tables.Column!")
+                    return 0, "Input is not valid, column should be Tables.Column!"
+        return 1, None
 
     def get_db_configure(self, top, Button_obj):
         global f_json
