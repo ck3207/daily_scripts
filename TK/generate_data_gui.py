@@ -5,11 +5,11 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 import json
-import  generate_data
 
 import cx_Oracle
 import pymysql
 
+from generate_data import Generate_Data
 
 class Connect_to_sql:
     def __init__(self):
@@ -20,6 +20,7 @@ class Connect_to_sql:
         self.database = ""
         self.charset = ""
         self.tables = list()
+        self.db_type = ""
 
     # def get_url(self):
     #     url = e1.get()
@@ -42,6 +43,7 @@ class Connect_to_sql:
         self.database = f_json[conn_name]["database"]
         self.charset = f_json[conn_name]["charset"]
         db_type = f_json[conn_name]["db_type"]
+        self.db_type = db_type
         global conn, cur
         if db_type == "mysql":
             try:
@@ -84,6 +86,9 @@ class Connect_to_sql:
             self.tables.append(table[0])
         return self.tables
 
+    def get_db_type(self):
+        return self.db_type
+
 class Display:
     def __init__(self):
         # 获取屏幕 宽、高
@@ -103,6 +108,7 @@ class Display:
         self.all_tables = list()
         self.vs = list()    # Checkbutton
         self.svs = list()   # Entry
+        self.all_valid_columns = list()
 
     def get_configure_page(self):
         top = Toplevel(master, relief=SUNKEN)
@@ -196,13 +202,13 @@ class Display:
                                    message="每项规则最多能设置{}个条件".format(int(self.hs//40)), icon="warning")
             return
         if flag:
-            self.svs.append(["left", self.logic_set_row_left, sv])
+            self.svs.append(["L", self.logic_set_row_left, sv])
             self.logic_set_row_left += 1
             self.entry = Entry(frame, textvariable=sv, width=80, yscrollcommand=yview)
             self.entry.delete(0, END)
             self.entry.grid(row=self.logic_set_row_left, pady=5, column=0, columnspan=80, padx=20)
         else:
-            self.svs.append(["right", self.logic_set_row_right, sv])
+            self.svs.append(["R", self.logic_set_row_right, sv])
             self.logic_set_row_right += 1
             self.entry = Entry(frame, textvariable=sv, width=80, yscrollcommand=yview)
             self.entry.delete(0, END)
@@ -214,14 +220,15 @@ class Display:
         # frame.grid()
         for each in self.svs:
             print(each[0], each[1], each[2].get())
-            flag, error = self.validate_the_input(each[2].get())
+            flag, error = self.validate_the_input(entry=each[2].get(), lr=each[0])
             if not flag:
                 messagebox.showerror(title="设置错误", message=error, icon="error", parent=frame)
 
-    def validate_the_input(self, entry="A1.COL1 + A2.COL2 = A3.COL3"):
+    def validate_the_input(self, lr, entry="A1.COL1 + A2.COL2 = A3.COL3"):
         """Extrat entry ==> A1.COL1||A2.COL2||A3.COL3, then split by || \
         and judge each table.column whethor it is validate or not. """
         operator = ["+", "-", "*", "/", "="]
+        entry_origin = entry
         entry.strip().replace(" ", "")
         for each in operator:
             entry_temp = ""
@@ -235,18 +242,36 @@ class Display:
                 entry.remove(each)
             else:
                 try:
-                    table = each.split(".")[0]
+                    table, column = each.split(".")
                     if table not in self.checked_tables:
                         if table not in self.all_tables:
                             return 0, "Table[{0}] is not found!".format(table)
                         else:
                             self.checked_tables.append(table)
                             print(each, " passed!")
+                    self.all_valid_columns.append(each)
                 except IndexError:
                     # messagebox.showerror(title="数据库连接错误", message=str(e), parent=top)
                     print("Input is not valid, column should be Tables.Column!")
                     return 0, "Input is not valid, column should be Tables.Column!"
+        columns_relation.extract_relations(entry=entry_origin, side=lr)
+        columns_relation.add_columns(self.all_valid_columns)
         return 1, None
+
+    def generate_data_page(self, db_type, times=1):
+        relation = columns_relation.get_column_relation()
+        db_type = connect_to_sql.get_db_type()
+        insert_values = ""
+        for table in self.checked_tables:
+            cycle = 0
+            while True:
+                if cycle >= times:
+                    break
+                else:
+                    insert_values = "{0},{1}".format(insert_values, generate_data.generate_column_value(column_relation=relation, \
+                                                                            table=table, db_type=db_type))
+
+                cycle += 1
 
     def get_db_configure(self, top, Button_obj):
         global f_json
@@ -288,12 +313,32 @@ class Display:
     def warning_message(self):
         pass
 
-class Extract_Columns_Relations:
+class Extract_Columns_Relation:
     def __init__(self):
+        self.column_relation = dict()
+        self.key = 0
+
+    def extract_relations(self, entry="", side="L"):
+        left, right = entry.split("=")
+        self.column_relation[self.key] = {}
+        self.column_relation[self.key][side+"0"] = left.strip()
+        self.column_relation[self.key][side+"1"] = right.strip()
+        return
+
+    def add_columns(self, columns=list()):
+        for column in columns:
+            self.column_relation[column] = []
+        print(self.column_relation)
+        return
+
+    def add_data_to_column(self):
         pass
 
-    def extract_relations(self):
+    def has_value_or_not(self):
         pass
+
+    def get_column_relation(self):
+        return self.column_relation
 
 if __name__ == "__main__":
     f_json = ""
@@ -301,6 +346,8 @@ if __name__ == "__main__":
     master = Tk()
     master.title("数据生成工具")
     connect_to_sql = Connect_to_sql()
+    columns_relation = Extract_Columns_Relation()
+    generate_data = Generate_Data()
     display = Display()
     display.get_configure_page()
 
