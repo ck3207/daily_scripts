@@ -319,13 +319,25 @@ class Extract_Columns_Relation:
         self.key = 0
 
     def extract_relations(self, entry="", side="L"):
-        left, right = entry.split("=")
         self.column_relation[self.key] = {}
-        self.column_relation[self.key][side+"0"] = left.strip()
-        self.column_relation[self.key][side+"1"] = right.strip()
+        self.column_relation[self.key][side+"0"] = list()
+        self.column_relation[self.key][side+"1"] = list()
+        reg = re.compile(r"[+,-,*,/]\s*\w*.\w*")
+        equal_index = entry.find("=")
+        for each in reg.findall(entry):
+            if entry.find(each) < equal_index:
+                self.column_relation[self.key][side + "0"].append(each)
+            else:
+                self.column_relation[self.key][side + "1"].append(each)
+            entry_tmp = entry.replace(each, "")
+
+        left, right = entry_tmp.split("=")
+        self.column_relation[self.key][side+"0"].append(left)
+        self.column_relation[self.key][side+"1"].append(right)
         return
 
     def add_columns(self, columns=list()):
+        """Return style like this, {"Table.column":[]}"""
         for column in columns:
             self.column_relation[column] = []
         print(self.column_relation)

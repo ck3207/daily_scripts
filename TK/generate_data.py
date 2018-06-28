@@ -110,14 +110,37 @@ class Generate_Data:
             print("Oracle")
 
     def get_column_value(self, column_relation, row_info, table, column, index):
-        """"""
+        """column_relation = {0:{"l0":["table1", "+table2"], "l1":["table2"]}}"""
+        operator = {"+":"-", "-":"+", "*":"/", "/":"*"}
         # 若字段数据已经生成，直接取值
         for key in column_relation.keys():
             if isinstance(key, str) and column in key:
-                if column_relation.get(key) == []:
+                if len(column_relation[key]) < index + 1:
                     continue
                 else:
                     return column_relation.get(key)[index]
+
+        target_column = {"target_column":{"left":"value"}}
+        for key in column_relation.keys():
+            if isinstance(key, int):
+                i = 0
+                for left in column_relation[key]["l0"]:
+                    for each in ["+", "-", "*", "/"]:
+                        left_temp = left
+                        left = left.replace(each, "")
+                        if left_temp != left:
+                            value = self.deal_operator(left_temp.replace(left, ""))
+                    if len(column_relation[left]) < index + 1:
+                        i += 1
+                        target_column[left] = {"left": ""}
+                for right in column_relation[key]["l1"]:
+                    for each in ["+", "-", "*", "/"]:
+                        right = right.replace(each, "")
+                    if len(column_relation[right]) < index + 1:
+                        i += 1
+                        target_column[left] = {"right": ""}
+                if i == 1:
+                    return
 
         # 字段
         if column_relation.get(table+"."+column) is None:
@@ -128,6 +151,9 @@ class Generate_Data:
             return value
         else:
             return column_relation.get(table+"."+column)[index]
+
+    def deal_operator(self, operator):
+        pass
 
     def generate_data_for_mysqldb(self, columns, commit_num, commit_times):
          """通用造数据函数
