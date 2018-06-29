@@ -3,6 +3,7 @@ __author__ = "chenk"
 import random
 import datetime
 import time
+import re
 
 class Generate_Data:
     def __init__(self, cur):
@@ -120,26 +121,49 @@ class Generate_Data:
                 else:
                     return column_relation.get(key)[index]
 
-        target_column = {"target_column":{"left":"value"}}
+        target_column = {"target_column": ["column", "l0", ]}
+        ignore = list()
         for key in column_relation.keys():
             if isinstance(key, int):
                 i = 0
-                for left in column_relation[key]["l0"]:
+                if "l0" in column_relation[key]:
+                    lr = "l"
+                else:
+                    lr = "r"
+                for left in column_relation[key][lr+"0"]:
                     for each in ["+", "-", "*", "/"]:
-                        left_temp = left
                         left = left.replace(each, "")
-                        if left_temp != left:
-                            value = self.deal_operator(left_temp.replace(left, ""))
                     if len(column_relation[left]) < index + 1:
                         i += 1
-                        target_column[left] = {"left": ""}
-                for right in column_relation[key]["l1"]:
+                        target_column["target_column"] = [left, lr+"0"]
+                for right in column_relation[key][lr+"1"]:
                     for each in ["+", "-", "*", "/"]:
                         right = right.replace(each, "")
                     if len(column_relation[right]) < index + 1:
                         i += 1
-                        target_column[left] = {"right": ""}
+                        target_column["target_column"] = [right, lr+"1"]
                 if i == 1:
+                    value = 0
+                    j = 0
+                    if lr == "l" and target_column["target_column"][2] == (lr + "0"):
+                        reg = re.compile(r"([+,-,*,/])")
+                        for each in column_relation[key][lr+"1"]:
+                            col_info = column_relation[key][lr + "1"][j - 1]
+                            symbol = reg.match(col_info).group(1)
+                            table_column = col_info.replace(symbol, "").strip()
+                            if "*" in each:
+                                value += column_relation[table_column] * column_relation[each.replace("*", "")]
+                            elif "/" in each:
+                                value += column_relation[key][lr + "1"][j-1] / column_relation[key][lr+"1"][j]
+                            elif "+" in each:
+                                value += column_relation[each.replace("+", "")]
+                            elif "-" in each:
+                                pass
+                            else:
+                                value += column_relation[each]
+                            j += 1
+                    else:
+                        pass
                     return
 
         # 字段
@@ -153,7 +177,9 @@ class Generate_Data:
             return column_relation.get(table+"."+column)[index]
 
     def deal_operator(self, operator):
-        pass
+        if operator == "+":
+            pass
+
 
     def generate_data_for_mysqldb(self, columns, commit_num, commit_times):
          """通用造数据函数
