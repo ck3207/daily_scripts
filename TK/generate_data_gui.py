@@ -109,6 +109,7 @@ class Display:
         self.vs = list()    # Checkbutton
         self.svs = list()   # Entry
         self.all_valid_columns = list()
+        self.extract_all_columns = dict()
 
     def get_configure_page(self):
         top = Toplevel(master, relief=SUNKEN)
@@ -218,15 +219,26 @@ class Display:
     def get_logic_setting(self, frame):
         # frame = Frame(master)
         # frame.grid()
-        for each in self.svs:
-            print(each[0], each[1], each[2].get())
-            flag, error = self.validate_the_input(entry=each[2].get(), lr=each[0])
-            if not flag:
-                messagebox.showerror(title="设置错误", message=error, icon="error", parent=frame)
+        is_pass = True
+        if len(self.svs) == 0:
+            self.generate_data_page(frame)
+        else:
+            for each in self.svs:
+                print(each[0], each[1], each[2].get())
+                flag, error = self.validate_the_input(entry=each[2].get(), lr=each[0])
+                if not flag:
+                    messagebox.showerror(title="设置错误", message=error, icon="error", parent=frame)
+                    is_pass = False
+
+            if is_pass:
+                self.generate_data_page(frame)
+
 
     def validate_the_input(self, lr, entry="A1.COL1 + A2.COL2 = A3.COL3"):
         """Extrat entry ==> A1.COL1||A2.COL2||A3.COL3, then split by || \
         and judge each table.column whethor it is validate or not. """
+        if entry.strip() == "":
+            return 1, None
         operator = ["+", "-", "*", "/", "="]
         entry_origin = entry
         entry.strip().replace(" ", "")
@@ -254,13 +266,24 @@ class Display:
                     # messagebox.showerror(title="数据库连接错误", message=str(e), parent=top)
                     print("Input is not valid, column should be Tables.Column!")
                     return 0, "Input is not valid, column should be Tables.Column!"
-        columns_relation.extract_relations(entry=entry_origin, side=lr)
-        columns_relation.add_columns(self.all_valid_columns)
+
+        self.extract_all_columns[entry_origin] = entry
+        # columns_relation.extract_relations(entry=entry_origin, side=lr)
+        # columns_relation.add_columns(self.all_valid_columns)
         return 1, None
 
-    def generate_data_page(self, db_type, times=1):
-        relation = columns_relation.get_column_relation()
+    def generate_data_page(self, frame):
+        # frame = Frame(height=5, width=20)
+        # frame.grid()
+        # Label(frame, text="输入要产生的数据量：").grid()
+        # Entry(frame).grid(padx=5, pady=5)
+        times = 100
         db_type = connect_to_sql.get_db_type()
+        for info in self.svs:
+            return generate_data.generate_column_value(tables=self.checked_tables, entry_info=info, \
+                                                       entry_columns=self.extract_all_columns, \
+                                                       db_type=db_type, num=times)
+
         insert_values = ""
         for table in self.checked_tables:
             cycle = 0
@@ -313,53 +336,13 @@ class Display:
     def warning_message(self):
         pass
 
-class Extract_Columns_Relation:
-    def __init__(self):
-        self.column_relation = dict()
-        self.key = 0
-
-    def extract_relations(self, entry="", side="L"):
-        self.column_relation[self.key] = {}
-        self.column_relation[self.key][side+"0"] = list()
-        self.column_relation[self.key][side+"1"] = list()
-        reg = re.compile(r"[+,-,*,/]\s*\w*.\w*")
-        equal_index = entry.find("=")
-        for each in reg.findall(entry):
-            if entry.find(each) < equal_index:
-                self.column_relation[self.key][side + "0"].append(each)
-            else:
-                self.column_relation[self.key][side + "1"].append(each)
-            entry_tmp = entry.replace(each, "")
-
-        left, right = entry_tmp.split("=")
-        self.column_relation[self.key][side+"0"].append(left)
-        self.column_relation[self.key][side+"1"].append(right)
-        return
-
-    def add_columns(self, columns=list()):
-        """Return style like this, {"Table.column":[]}"""
-        for column in columns:
-            self.column_relation[column] = []
-        print(self.column_relation)
-        return
-
-    def add_data_to_column(self):
-        pass
-
-    def has_value_or_not(self):
-        pass
-
-    def get_column_relation(self):
-        return self.column_relation
-
 if __name__ == "__main__":
     f_json = ""
     conn, cur = 0, 0
     master = Tk()
     master.title("数据生成工具")
     connect_to_sql = Connect_to_sql()
-    columns_relation = Extract_Columns_Relation()
-    generate_data = Generate_Data()
+    generate_data = Generate_Data(cur)
     display = Display()
     display.get_configure_page()
 
