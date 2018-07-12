@@ -56,52 +56,82 @@ class Generate_Data:
             result = self.get_cols(table=table, db_type=db_type)
             insert_columns = ""
             insert_values = ""
+            insert_sql = ""
+
+            index = 0
+            commit_num = 1000
             if result:
-                while index:
-                    break
-                for row_info in result:
-                    column = row_info[0]
-                    key = column
-                    if key in self.all_columns_value and len(self.all_columns_value[key]) - 1 >= index:
-                        value = self.all_columns_value.get(key)[index]
-                    elif key in self.all_columns_value:
-                        value = self._generate_column_value(row_info=row_info)
-                        self.all_columns_value[key].append(value)
-                    else:
-                        is_in_entry = False
-                        for entry_column in entry_columns.values():
-                            if column in entry_column:
-                                is_in_entry = True
-                                # 判断是否方程式只有一个未知数
-                                need_cal_column_num = 0
-                                for each in entry_column.split("||"):
-                                    if self.all_columns_value[each.split(".")[1]] is None:
-                                        need_cal_column_num += 1
-                                    else:
-                                        target_column = each.split(".")[1]
-                                if need_cal_column_num == 1:
-                                    expression = ""
-                                    entry_column = self.extract_to_table_point_column(entry_info)
-                                    for each in entry_column:
-                                        expression += each
-                                    value = self.solve(entry_column=entry_column, expression=expression,
-                                                       var=target_column)
-                                    if target_column in self.all_columns_value:
-                                        self.all_columns_value[target_column].append(value)
-                                    else:
-                                        self.all_columns_value[target_column] = [value]
-
+                while True:
+                    insert_sql = ""
+                    while commit_num:
+                        insert_values = ""
+                        for row_info in result:
+                            column = row_info[0]
+                            key = column
+                            value = ""
+                            # 字段已存在于字典项中，可直接取值
+                            if key in self.all_columns_value and len(self.all_columns_value[key]) - 1 >= index:
+                                value = self.all_columns_value.get(key)[index]
+                            # 字段已存在于字典项中，但没有可取值
+                            elif key in self.all_columns_value:
+                                value = self._generate_column_value(row_info=row_info)
+                                self.all_columns_value[key].append(value)
+                            # 字段不存在于字典项中
                             else:
-                                self.get_column_value(row_info=row_info, table=table, column=column, index="")
+                                is_in_entry = False # 判断字段是否在表达式中的标志位
+                                for entry_column in entry_columns.values():
+                                    # 字段在表达式中
+                                    if column in entry_column:
+                                        # 判断是否方程式只有一个未知数
+                                        need_cal_column_num = 0
+                                        for each in entry_column.split("||"):
+                                            if self.all_columns_value[each.split(".")[1]] is None:
+                                                need_cal_column_num += 1
+                                            else:
+                                                target_column = each.split(".")[1]
+                                        # 方程中仅有一个未知变量
+                                        if need_cal_column_num == 1:
+                                            expression = ""
+                                            entry_column = self.extract_to_table_point_column(entry_info)
+                                            for each in entry_column:
+                                                expression += each
+                                            # 计算未知变量
+                                            value = self.solve(entry_column=entry_column, expression=expression,
+                                                               var=target_column)
+                                            if target_column in self.all_columns_value:
+                                                self.all_columns_value[target_column].append(value)
+                                            else:
+                                                self.all_columns_value[target_column] = [value]
+                                            # 表达式未知字段与需要生成的字段不为同一字段
+                                            if column != target_column:
+                                                self.all_columns_value[key] = value
+                                            # 表达式未知字段与需要生成的字段为同一字段
+                                            else:
+                                                is_in_entry = True
+                                                break
+                                        # 方程中有多个未知变量(暂不处理，有可能有别的表达式存在唯一变量)
+                                        else:
+                                            pass
+                                    # 字段不在此表达式中
+                                    else:
+                                        pass
+                                # 字段不在所有表达式中
+                                if is_in_entry == False and isinstance(value, str):
+                                    value = self._generate_column_value(row_info=row_info)
+                                    self.all_columns_value[column] = [value]
 
-                        if is_in_entry == False:
-                            value = self._generate_column_value(row_info=row_info)
-                            self.all_columns_value[column] = [value]
-
-                        value = self._generate_column_value(row_info=row_info)
-                        self.all_columns_value[key] = [value]
-
-                    return self.get_column_value()
+                            insert_values += " '{0}',".format(value)
+                        insert_values = "({0}),".format(insert_values[:-1])
+                        insert_sql += "{0}".format(insert_values)
+                        index += 1
+                        commit_num -= 1
+                        if commit_num == 0:
+                            insert_sql = "insert into {0} values {1}".format(table, insert_sql[:-1])
+                            """执行sql"""
+                        if index > num:
+                            insert_sql = "insert into {0} values {1}".format(table, insert_sql[:-1])
+                            """执行sql"""
+                            break
 
     def _generate_column_value(self, row_info):
         """According to the field type, it will generate a approciate value. Now it is support Mysql and Oracle."""
