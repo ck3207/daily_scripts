@@ -2,7 +2,7 @@
 import re
 import random
 
-def validate_the_input(entry="A1.COL1 + A2.COL2 / A3.COL1= A3.COL3"):
+def validate_the_input(entry="A1.COL1 + A2.COL2 / A3.COL1 + A4.COL4 / A5.COL5 = A3.COL3"):
     table_columns = list()
     reg_table_column = re.compile(r"\s*(\w+\.\w+)")
     reg_symbol = re.compile(r"[+,-,*,/,=]")
@@ -10,27 +10,28 @@ def validate_the_input(entry="A1.COL1 + A2.COL2 / A3.COL1= A3.COL3"):
 
     for table_column in reg_table_column.findall(entry):
         table_columns.insert(i, table_column)
-        if table_column != "A2.COL2":
+        if table_column != "A3.COL3":
             values[table_column] = random.randint(100, 10000)
         i += 2
     for symbol in reg_symbol.findall(entry):
         table_columns.insert(j, symbol)
         j += 2
-    print(values)
     return table_columns
 
 def deal_opetator(columns_info):
     # table_columns_tmp = table_columns
-    for operator in ["*", "/"]:
-        try:
-            index = columns_info.index(operator)
-            left = columns_info.pop(index-1)
-            middle = columns_info.pop(index-1)
-            right = columns_info.pop(index-1)
-            columns_info.insert(index-1, left+middle+right)
-            print(columns_info)
-        except ValueError:
-            pass
+    count = columns_info.count("*")+columns_info.count("/")
+    while count:
+        for operator in ["*", "/"]:
+            try:
+                index = columns_info.index(operator)
+                left = columns_info.pop(index-1)
+                middle = columns_info.pop(index-1)
+                right = columns_info.pop(index-1)
+                columns_info.insert(index-1, left+middle+right)
+            except ValueError:
+                pass
+        count -= 1
     return columns_info
 
 def cal(columns_info):
@@ -39,8 +40,7 @@ def cal(columns_info):
     # 获取待解字段及其位置
     for each in columns_info:
         if each == "+" or each == "-" or each == "=":
-            pass
-
+            continue
         elif "*" in each:
             for column_temp in each.split("*"):
                 for column in column_temp.split("/"):
@@ -48,7 +48,6 @@ def cal(columns_info):
                         target_index = columns_info.index(each)
                         target_column = column
                         break
-
         elif "/" in each:
             for column_temp in each.split("/"):
                 for column in column_temp.split("*"):
@@ -56,33 +55,45 @@ def cal(columns_info):
                         target_index = columns_info.index(each)
                         target_column = column
                         break
-
         else:
             if each not in values:
                 target_index = columns_info.index(each)
-                target_column = column
+                target_column = each
                 break
 
+    # 使未知变量在等式左边
+    if equal_index < target_index:
+        columns_info_temp = list()
+        for each in columns_info[equal_index+1:]:
+            columns_info_temp.append(each)
+            if target_column in each:
+                target_index = columns_info_temp.index(each)
+        columns_info_temp.append("=")
+        for each in columns_info[:equal_index]:
+            columns_info_temp.append(each)
+        equal_index = columns_info_temp.index("=")
+    columns_info = columns_info_temp
+
     # 处理目标字段至最后
+    add_column = False
     if equal_index > target_index:
         columns_info.insert(equal_index-1, columns_info.pop(target_index))
+        # 目标字段诺到后面时，如果是第一个字段，需要在目标字段前加 “+”， 否则 将原目标字段前面的符号带过去
         if target_index > 1:
             columns_info.insert(equal_index-2, columns_info.pop(target_index-1))
         else:
             columns_info.insert(equal_index-1, "+")
-    else:
-        columns_info.append(columns_info.pop(target_index))
-        if target_index - equal_index > 1:
-            columns_info.insert(-2, columns_info.pop(target_index-1))
-        else:
-            columns_info.insert(-2, "+")
+            add_column = True
 
-    print(target_index)
     value = 0
     # 待解字段在等号之前
+    offset = 1
+    if add_column == True:
+        offset = 2
     if equal_index > target_index:
         plus_or_minus = 1
-        for each in columns_info[equal_index+1:]:
+        # 计算等式右侧的值
+        for each in columns_info[equal_index+offset:]:
             value_right = ""
             if each == "+":
                 plus_or_minus = 1
@@ -130,14 +141,14 @@ def cal(columns_info):
 
         # 处理有待解字段的数据
         plus_or_minus = -1
-        column_combination = ""
+        # 计算等式左边的值，并计算出等式左边中目标字段的值
         for each in columns_info[:equal_index]:
             value_left = ""
             if each == "+":
-                plus_or_minus = 1
+                plus_or_minus = -1
                 continue
             elif each == "-":
-                plus_or_minus = -1
+                plus_or_minus = 1
                 continue
             elif ("*" in each and "/" not in each) or ("*" in each and "/" in each and each.index("*") < each.index("/")):
                 temp_multiplication = each.split("*")
@@ -149,7 +160,7 @@ def cal(columns_info):
                         continue
                     elif target_column in multiplication_column and multiplication_column == temp_multiplication[-1]:
                         """2048/16/8/4/2 = 2  --> a/b/c/d/e = 2"""
-                        value *= plus_or_minus
+                        # value *= plus_or_minus
                         if "/" in multiplication_column:
                             temp_division = multiplication_column.split("/")
                             temp_index = len(temp_division) - 1
@@ -192,7 +203,7 @@ def cal(columns_info):
                         continue
                     elif target_column in division_column and division_column == temp_division[-1]:
                         """2048/16/8/4/2 = 2  --> a/b/c/d/e = 2"""
-                        value *= plus_or_minus
+                        # value *= plus_or_minus
                         if "*" in division_column:
                             temp_multiplication = division_column.split("*")
                             for i in range(0, len(temp_multiplication)):
@@ -221,11 +232,17 @@ def cal(columns_info):
                             else:
                                 value_left /= values[division_column]
             else:
-                value_left = values[each]
-
+                if each == target_column and each != columns_info[-1]:
+                    columns_info.remove(target_column)
+                    columns_info.insert(-1, target_column)
+                    columns_info.insert(0, 0)
+                    continue
+                elif each == target_column and each == columns_info[-1]:
+                    print("Out3:", str(value))
+                else:
+                    value_left = values[each]
             value += value_left * plus_or_minus
         print("Out3:", str(value))
-
 
 
 if __name__ == "__main__":
