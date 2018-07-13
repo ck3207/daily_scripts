@@ -67,7 +67,7 @@ class Connect_to_sql:
                 messagebox.showerror(title="数据库连接错误", message=str(e), parent=top, icon="error")
                 return
 
-        return self.get_all_tables(db_type=db_type)
+        return self.get_all_tables(db_type=db_type), cur
 
     def disconnect(self):
         """Disconnect database and release resource. If flag is true, the program will be shutdown. """
@@ -110,6 +110,7 @@ class Display:
         self.svs = list()   # Entry
         self.all_valid_columns = list()
         self.extract_all_columns = dict()
+        self.cur = ""
 
     def get_configure_page(self):
         top = Toplevel(master, relief=SUNKEN)
@@ -126,7 +127,7 @@ class Display:
 
     def table_select_page(self, top, conn_name):
         """"""
-        self.all_tables = connect_to_sql.connect_db(conn_name=conn_name, top=top)
+        self.all_tables, self.cur = connect_to_sql.connect_db(conn_name=conn_name, top=top)
         if self.all_tables:
             top.withdraw()
         # 粗略估计 最大行数、列数
@@ -277,24 +278,11 @@ class Display:
         # frame.grid()
         # Label(frame, text="输入要产生的数据量：").grid()
         # Entry(frame).grid(padx=5, pady=5)
+        generate_data = Generate_Data(self.cur)
         times = 100
         db_type = connect_to_sql.get_db_type()
-        for info in self.svs:
-            return generate_data.generate_column_value(tables=self.checked_tables, entry_info=info, \
-                                                       entry_columns=self.extract_all_columns, \
+        generate_data.generate_column_value(tables=self.checked_tables, entry_columns=self.extract_all_columns, \
                                                        db_type=db_type, num=times)
-
-        insert_values = ""
-        for table in self.checked_tables:
-            cycle = 0
-            while True:
-                if cycle >= times:
-                    break
-                else:
-                    insert_values = "{0},{1}".format(insert_values, generate_data.generate_column_value(column_relation=relation, \
-                                                                            table=table, db_type=db_type))
-
-                cycle += 1
 
     def get_db_configure(self, top, Button_obj):
         global f_json
@@ -342,7 +330,6 @@ if __name__ == "__main__":
     master = Tk()
     master.title("数据生成工具")
     connect_to_sql = Connect_to_sql()
-    generate_data = Generate_Data(cur)
     display = Display()
     display.get_configure_page()
 
