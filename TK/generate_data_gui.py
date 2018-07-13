@@ -111,6 +111,7 @@ class Display:
         self.all_valid_columns = list()
         self.extract_all_columns = dict()
         self.cur = ""
+        self.constant = dict()
 
     def get_configure_page(self):
         top = Toplevel(master, relief=SUNKEN)
@@ -226,7 +227,12 @@ class Display:
         else:
             for each in self.svs:
                 print(each[0], each[1], each[2].get())
-                flag, error = self.validate_the_input(entry=each[2].get(), lr=each[0])
+                # 逻辑设置
+                if each[0] == "L":
+                    flag, error = self.validate_the_input(entry=each[2].get(), lr=each[0])
+                # 常量设置
+                else:
+                    pass
                 if not flag:
                     messagebox.showerror(title="设置错误", message=error, icon="error", parent=frame)
                     is_pass = False
@@ -243,35 +249,55 @@ class Display:
         operator = ["+", "-", "*", "/", "="]
         entry_origin = entry
         entry.strip().replace(" ", "")
-        for each in operator:
-            entry_temp = ""
-            if each in entry:
-                for split in entry.split(each):
-                    entry_temp += split.strip() + "||"
-                entry = entry_temp[:-2]
-            operator.remove(each)
-        for each in entry.split("||"):
-            if each.strip() == "":
-                entry.remove(each)
-            else:
-                try:
-                    table, column = each.split(".")
-                    if table not in self.checked_tables:
-                        if table not in self.all_tables:
-                            return 0, "Table[{0}] is not found!".format(table)
-                        else:
-                            self.checked_tables.append(table)
-                            print(each, " passed!")
-                    self.all_valid_columns.append(each)
-                except IndexError:
-                    # messagebox.showerror(title="数据库连接错误", message=str(e), parent=top)
-                    print("Input is not valid, column should be Tables.Column!")
-                    return 0, "Input is not valid, column should be Tables.Column!"
+        # 处理逻辑运算
+        if lr == "L":
+            for each in operator:
+                entry_temp = ""
+                if each in entry:
+                    for split in entry.split(each):
+                        entry_temp += split.strip() + "||"
+                    entry = entry_temp[:-2]
+                operator.remove(each)
+            for each in entry.split("||"):
+                if each.strip() == "":
+                    entry.remove(each)
+                else:
+                    try:
+                        table, column = each.split(".")
+                        if table not in self.checked_tables:
+                            if table not in self.all_tables:
+                                return 0, "Table[{0}] is not found!".format(table)
+                            else:
+                                self.checked_tables.append(table)
+                                # print(each, " passed!")
+                        self.all_valid_columns.append(each)
+                    except IndexError:
+                        # messagebox.showerror(title="数据库连接错误", message=str(e), parent=top)
+                        print("Input is not valid, column should be Tables.Column!")
+                        return 0, "Input is not valid, column should be Tables.Column!"
 
-        self.extract_all_columns[entry_origin] = entry
-        # columns_relation.extract_relations(entry=entry_origin, side=lr)
-        # columns_relation.add_columns(self.all_valid_columns)
-        return 1, None
+            self.extract_all_columns[entry_origin] = entry
+
+            return 1, None
+        else:
+            left_right = entry.split("=")
+            if len(left_right) > 2:
+                return 0, "Input is not valid. For example: Table1.col1 = 5 or Table1.col1 = Table2.col2."
+            elif len(left_right) < 2:
+                return 0, "Input is not valid. For example: Table1.col1 = 5 or Table1.col1 = Table2.col2."
+            else:
+                for each in left_right:
+                    if each.strip().isalnum():
+                        value = each.strip()
+                    else:
+                        table, column = each.strip().split(".")
+                        if table not in self.checked_tables:
+                            if table not in self.all_tables:
+                                return 0, "Table[{0}] is not found!".format(table)
+                            else:
+                                self.checked_tables.append(table)
+                        self.all_valid_columns.append(each)
+
 
     def generate_data_page(self, frame):
         # frame = Frame(height=5, width=20)
