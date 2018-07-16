@@ -22,18 +22,6 @@ class Connect_to_sql:
         self.tables = list()
         self.db_type = ""
 
-    # def get_url(self):
-    #     url = e1.get()
-    #     self.host = re.search("//(.+?):", url).group(1)
-    #     try:
-    #         self.port = int(re.search(":(\d+)", url).group(1))
-    #     except AttributeError:
-    #         self.port = 80
-    #     self.charset = re.search("charset=(.+)", url).group(1).replace("-","")
-    #     self.database = re.search(":\d*/(.+?)\?", url[8:]).group(1)
-    #     self.username = e2.get()
-    #     self.password = e3.get()
-
     def connect_db(self,conn_name, top):
         # self.disconnect()
         self.host = f_json[conn_name]["host"]
@@ -111,7 +99,7 @@ class Display:
         self.all_valid_columns = list()
         self.extract_all_columns = dict()
         self.cur = ""
-        self.constant = dict()
+        self.constant = {"value": {}}
 
     def get_configure_page(self):
         top = Toplevel(master, relief=SUNKEN)
@@ -191,7 +179,6 @@ class Display:
         Button(frame, text="提交", command=lambda: self.get_logic_setting(frame), width=5)\
             .grid(row=self.logic_set_row_left, column=161, padx=10, pady=10, ipadx=10, ipady=10, sticky=E)
 
-
     def add_logic_entry(self, frame, flag=False):
         sv = StringVar()
         yview = None
@@ -226,20 +213,15 @@ class Display:
             self.generate_data_page(frame)
         else:
             for each in self.svs:
-                print(each[0], each[1], each[2].get())
-                # 逻辑设置
-                if each[0] == "L":
-                    flag, error = self.validate_the_input(entry=each[2].get(), lr=each[0])
-                # 常量设置
-                else:
-                    pass
+                # print(each[0], each[1], each[2].get())
+                flag, error = self.validate_the_input(entry=each[2].get(), lr=each[0])
+
                 if not flag:
                     messagebox.showerror(title="设置错误", message=error, icon="error", parent=frame)
                     is_pass = False
 
             if is_pass:
                 self.generate_data_page(frame)
-
 
     def validate_the_input(self, lr, entry="A1.COL1 + A2.COL2 = A3.COL3"):
         """Extrat entry ==> A1.COL1||A2.COL2||A3.COL3, then split by || \
@@ -281,23 +263,62 @@ class Display:
             return 1, None
         else:
             left_right = entry.split("=")
-            if len(left_right) > 2:
-                return 0, "Input is not valid. For example: Table1.col1 = 5 or Table1.col1 = Table2.col2."
-            elif len(left_right) < 2:
-                return 0, "Input is not valid. For example: Table1.col1 = 5 or Table1.col1 = Table2.col2."
-            else:
-                for each in left_right:
-                    if each.strip().isalnum():
-                        value = each.strip()
-                    else:
-                        table, column = each.strip().split(".")
-                        if table not in self.checked_tables:
-                            if table not in self.all_tables:
-                                return 0, "Table[{0}] is not found!".format(table)
-                            else:
-                                self.checked_tables.append(table)
-                        self.all_valid_columns.append(each)
+            # 输入合法性校验
+            reg_column = re.compile("\w+\.\w+\s*")
+            reg_constant = re.compile("\s*\d+\.*\d+")
+            flag = 0
+            for temp_index, each in enumerate(left_right):
+                constant_result = re.match(reg_constant, left_right[temp_index]).group(0)
+                if constant_result:
+                    column_result = ""
+                else:
+                    column_result = re.match(reg_column, left_right[temp_index]).group(0)
+                if temp_index == 0 and column_result:
+                    flag += 1
+                elif temp_index == 1 and constant_result:
+                    flag += 10
+                elif temp_index == 1 and column_result:
+                    flag += 100
+                else:
+                    return 0, "Input is not valid. For example: Table1.col1 = 5 or Table1.col1 = Table2.col2."
 
+            table_column = left_right[0].strip()
+            table, column = table_column.split(".")
+            key = table_column
+            if table not in self.checked_tables and table not in self.all_tables:
+                self.all_valid_columns.append(table_column)
+                return 0, "Table[{0}] is not found!".format(table)
+
+            table_column = left_right[1].strip()
+            # Table1.Col1 = 5.01
+            if flag == 11:
+                if "." in table_column:
+                    value = float(table_column)
+                else:
+                    value = int(table_column)
+                self.checked_tables.append(table)
+                self.constant[table_column] = value
+                return 1, None
+            # Table1.Col1 = Table2.Col2
+            elif flag == 101:
+                table_column = left_right[1].strip()
+                table, column = table_column.split(".")
+                if table not in self.checked_tables and table not in self.all_tables:
+                    self.all_valid_columns.append(table_column)
+                    return 0, "Table[{0}] is not found!".format(table)
+                elif table not in self.checked_tables and table in self.all_tables:
+                    self.checked_tables.append(table)
+                    self.constant[key] = table_column
+                    self.constant["value"][key] = []
+                    self.constant["value"][table_column] = self.constant["value"][key]
+                    return 1, None
+                else:
+                    self.constant[key] = table_column
+                    self.constant["value"][key] = []
+                    self.constant["value"][table_column] = self.constant["value"][key]
+                    return 1, None
+            else:
+                return 0, "Input is not valid. For example: Table1.col1 = 5 or Table1.col1 = Table2.col2."
 
     def generate_data_page(self, frame):
         # frame = Frame(height=5, width=20)
@@ -308,7 +329,7 @@ class Display:
         times = 100
         db_type = connect_to_sql.get_db_type()
         generate_data.generate_column_value(tables=self.checked_tables, entry_columns=self.extract_all_columns, \
-                                                       db_type=db_type, num=times)
+                                                       db_type=db_type, num=times, constant=self.constant)
 
     def get_db_configure(self, top, Button_obj):
         global f_json

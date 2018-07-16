@@ -45,7 +45,7 @@ class Generate_Data:
         value = eval(expression, globals=var_dict)
         return -value.real/value.imag
 
-    def generate_column_value(self, tables, entry_columns, db_type, num):
+    def generate_column_value(self, tables, entry_columns, db_type, num, constant):
 
         for table in tables:
             result = self.get_cols(table=table, db_type=db_type)
@@ -59,61 +59,89 @@ class Generate_Data:
                     while commit_num:
                         insert_values = ""
                         for row_info in result:
+                            is_constant = False
                             column = row_info[0]
+                            # mysql 数据返回时，由于是用 desc 方法获取字段信息，故需做一下处理
                             if len(row_info) > 3:
                                 row_info = row_info[:2]
-                            key = column
-                            value = ""
-                            # 字段已存在于字典项中，可直接取值
-                            if key in self.all_columns_value and len(self.all_columns_value[key]) - 1 >= index:
-                                value = self.all_columns_value.get(key)[index]
-                            # 字段已存在于字典项中，但没有可取值
-                            elif key in self.all_columns_value:
-                                value = self._generate_column_value(row_info=row_info)
-                                self.all_columns_value[key].append(value)
-                            # 字段不存在于字典项中
-                            else:
-                                is_in_entry = False # 判断字段是否在表达式中的标志位
-                                for entry_info, entry_column in entry_columns.items():
-                                    # 字段在表达式中
-                                    if column in entry_column:
-                                        # 判断是否方程式只有一个未知数
-                                        need_cal_column_num = 0
-                                        for each in entry_column.split("||"):
-                                            if self.all_columns_value[each.split(".")[1]] is None:
-                                                need_cal_column_num += 1
+                            temp_key = table + "." + column
+                            if temp_key in constant:
+                                if isinstance(constant.get(temp_key), str):
+                                    if len(constant["value"][temp_key]) >= index + 1:
+                                        value = constant["value"][temp_key][index]
+                                        is_constant = True
+                                    elif len(constant["value"][constant[temp_key]]) >= index + 1:
+                                        value = constant["value"][constant[temp_key]][index]
+                                        is_constant = True
+                                    else:
+                                        is_constant = False
+                                else:
+                                    value = constant.get(temp_key)
+                                    is_constant = True
+                            # 如果 temp_key 在 constant里面，那么 一定不会存在取值情况，只会存在赋值或者计算的情况
+                            elif temp_key not in constant or (temp_key in constant and is_constant is False):
+                                key = column
+                                value = ""
+                                # 字段已存在于字典项中，可直接取值
+                                if key in self.all_columns_value and len(self.all_columns_value[key]) - 1 >= index:
+                                    value = self.all_columns_value.get(key)[index]
+                                # 字段已存在于字典项中，但没有可取值
+                                elif key in self.all_columns_value:
+                                    value = self._generate_column_value(row_info=row_info)
+                                    if temp_key in constant:
+                                        constant["value"][temp_key].append(value)
+                                    else:
+                                        self.all_columns_value[key].append(value)
+                                # 字段不存在于字典项中
+                                else:
+                                    is_in_entry = False # 判断字段是否在表达式中的标志位
+                                    for entry_info, entry_column in entry_columns.items():
+                                        # 字段在表达式中
+                                        if column in entry_column:
+                                            # 判断是否方程式只有一个未知数
+                                            need_cal_column_num = 0
+                                            for each in entry_column.split("||"):
+                                                if self.all_columns_value[each.split(".")[1]] is None:
+                                                    need_cal_column_num += 1
+                                                else:
+                                                    target_column = each.split(".")[1]
+                                            # 方程中仅有一个未知变量
+                                            if need_cal_column_num == 1:
+                                                expression = ""
+                                                entry_column = self.extract_to_table_point_column(entry_info)
+                                                for each in entry_column:
+                                                    expression += each
+                                                # 计算未知变量
+                                                value = self.solve(entry_column=entry_column, expression=expression,
+                                                                   var=target_column)
+                                                if target_column in self.all_columns_value:
+                                                    self.all_columns_value[target_column].append(value)
+
+                                                else:
+                                                    if temp_key in constant:
+                                                        constant["value"][temp_key].append(value)
+                                                    else:
+                                                        self.all_columns_value[target_column] = [value]
+                                                # 表达式未知字段与需要生成的字段不为同一字段
+                                                if column != target_column:
+                                                    self.all_columns_value[key] = value
+                                                # 表达式未知字段与需要生成的字段为同一字段
+                                                else:
+                                                    is_in_entry = True
+                                                    break
+                                            # 方程中有多个未知变量(暂不处理，有可能有别的表达式存在唯一变量)
                                             else:
-                                                target_column = each.split(".")[1]
-                                        # 方程中仅有一个未知变量
-                                        if need_cal_column_num == 1:
-                                            expression = ""
-                                            entry_column = self.extract_to_table_point_column(entry_info)
-                                            for each in entry_column:
-                                                expression += each
-                                            # 计算未知变量
-                                            value = self.solve(entry_column=entry_column, expression=expression,
-                                                               var=target_column)
-                                            if target_column in self.all_columns_value:
-                                                self.all_columns_value[target_column].append(value)
-                                            else:
-                                                self.all_columns_value[target_column] = [value]
-                                            # 表达式未知字段与需要生成的字段不为同一字段
-                                            if column != target_column:
-                                                self.all_columns_value[key] = value
-                                            # 表达式未知字段与需要生成的字段为同一字段
-                                            else:
-                                                is_in_entry = True
-                                                break
-                                        # 方程中有多个未知变量(暂不处理，有可能有别的表达式存在唯一变量)
+                                                pass
+                                        # 字段不在此表达式中
                                         else:
                                             pass
-                                    # 字段不在此表达式中
-                                    else:
-                                        pass
-                                # 字段不在所有表达式中
-                                if is_in_entry == False and isinstance(value, str):
-                                    value = self._generate_column_value(row_info=row_info)
-                                    self.all_columns_value[column] = [value]
+                                    # 字段不在所有表达式中
+                                    if is_in_entry is False and isinstance(value, str):
+                                        value = self._generate_column_value(row_info=row_info)
+                                        if temp_key in constant:
+                                            constant["value"][temp_key].append(value)
+                                        else:
+                                            self.all_columns_value[column] = [value]
 
                             insert_values += " '{0}',".format(value)
                         insert_values = "({0}),".format(insert_values[:-1])
@@ -129,7 +157,7 @@ class Generate_Data:
                             self.execute_sql(insert_sql)
                             flag = True
                             break
-                    if flag == True:
+                    if flag is True:
                         break
 
     def _generate_column_value(self, row_info):
