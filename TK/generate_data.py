@@ -9,6 +9,7 @@ class Generate_Data:
     def __init__(self, cur):
         self.cur = cur
         self.all_columns_value = dict()
+        self.constant = dict()
 
     def get_cols(self, table, db_type):
         """获取表字段名、字段类型"""
@@ -30,23 +31,32 @@ class Generate_Data:
         i, j = 0, 1
 
         for table_column in reg_table_column.findall(entry):
-            table_columns.insert(i, table_column.split(".")[1])
+            table_columns.insert(i, table_column)
             i += 2
         for symbol in reg_symbol.findall(entry):
             table_columns.insert(j, symbol)
             j += 2
         return table_columns
 
-    def solve(self, entry_column, expression, var):
+    def solve(self, entry_column, expression, var, index):
         var_dict = {var: 1j}
         expression = expression.replace("=", "-(") + ")"
-        for column in entry_column:
-            globals[column] = self.all_columns_value[column]
+        for table_column in entry_column:
+            if table_column in ["+", "-", "*", "/", "="]:
+                continue
+            if self.constant.get(table_column) is not None and not isinstance(self.constant.get(table_column), str):
+                var_dict[table_column] = self.constant[table_column]
+            elif self.constant.get(table_column) is not None and isinstance(self.constant.get(table_column), str):
+                var_dict[table_column] = self.constant["value"][table_column][index]
+            elif table_column == var:
+                continue
+            else:
+                var_dict[table_column] = self.all_columns_value[table_column.split(".")[1]][index]
         value = eval(expression, globals=var_dict)
         return -value.real/value.imag
 
     def generate_column_value(self, tables, entry_columns, db_type, num, constant):
-
+        self.constant = constant
         for table in tables:
             result = self.get_cols(table=table, db_type=db_type)
 
@@ -73,6 +83,7 @@ class Generate_Data:
                                     elif len(constant["value"][constant[temp_key]]) >= index + 1:
                                         value = constant["value"][constant[temp_key]][index]
                                         is_constant = True
+                                    # 此情况正常生成数据
                                     else:
                                         is_constant = False
                                 else:
@@ -101,9 +112,18 @@ class Generate_Data:
                                             # 判断是否方程式只有一个未知数
                                             need_cal_column_num = 0
                                             for each in entry_column.split("||"):
-                                                if self.all_columns_value[each.split(".")[1]] is None:
-                                                    need_cal_column_num += 1
+                                                if constant.get(each) is not None \
+                                                        and not isinstance(constant.get(each), str):
+                                                    continue
+                                                elif constant["value"].get(each) is not None \
+                                                        and len(constant["value"].get(each)) > index + 1:
+                                                    continue
+                                                elif self.all_columns_value.get(each.split(".")[1]) is not None \
+                                                        and len(self.all_columns_value.get(each.split(".")[1])) >= index + 1:
+                                                    continue
                                                 else:
+                                                    need_cal_column_num += 1
+                                                    target_table_column = each
                                                     target_column = each.split(".")[1]
                                             # 方程中仅有一个未知变量
                                             if need_cal_column_num == 1:
@@ -113,18 +133,19 @@ class Generate_Data:
                                                     expression += each
                                                 # 计算未知变量
                                                 value = self.solve(entry_column=entry_column, expression=expression,
-                                                                   var=target_column)
-                                                if target_column in self.all_columns_value:
+                                                                   var=target_table_column, index=index)
+                                                if target_table_column in constant:
+                                                    constant["value"][target_table_column].append(value)
+                                                elif target_column in self.all_columns_value:
                                                     self.all_columns_value[target_column].append(value)
-
                                                 else:
-                                                    if temp_key in constant:
-                                                        constant["value"][temp_key].append(value)
-                                                    else:
-                                                        self.all_columns_value[target_column] = [value]
+                                                    self.all_columns_value[target_column] = [value]
                                                 # 表达式未知字段与需要生成的字段不为同一字段
                                                 if column != target_column:
-                                                    self.all_columns_value[key] = value
+                                                    if target_table_column in constant:
+                                                        constant["value"][target_table_column].append(value)
+                                                    else:
+                                                        self.all_columns_value[key] = value
                                                 # 表达式未知字段与需要生成的字段为同一字段
                                                 else:
                                                     is_in_entry = True

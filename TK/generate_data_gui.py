@@ -322,6 +322,9 @@ class Display:
                     elif table_column in self.constant and not isinstance(self.constant[table_column], str):
                         self.constant[key] = self.constant[table_column]
                     else:
+                        # 如果self.constant[key]是一个字符串，那么肯定不是常量，是两字段相等的逻辑设置
+                        self.constant[key] = ""
+                        self.constant[table_column] = ""
                         self.constant["value"][key] = []
                         self.constant["value"][table_column] = self.constant["value"][key]
                     return 1, None
