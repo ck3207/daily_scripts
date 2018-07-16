@@ -100,6 +100,7 @@ class Display:
         self.extract_all_columns = dict()
         self.cur = ""
         self.constant = {"value": {}}
+        self.g = lambda l, t: l.append(t) if t not in l else None
 
     def get_configure_page(self):
         top = Toplevel(master, relief=SUNKEN)
@@ -159,7 +160,7 @@ class Display:
                 value = value.get()
                 if value == 1:
                     print(key, value)
-                    self.checked_tables.append(key)
+                    self.g(self.checked_tables, key)
         return
 
     def set_logic_configure_page(self, tab, b):
@@ -250,7 +251,7 @@ class Display:
                             if table not in self.all_tables:
                                 return 0, "Table[{0}] is not found!".format(table)
                             else:
-                                self.checked_tables.append(table)
+                                self.g(self.checked_tables, table)
                                 # print(each, " passed!")
                         self.all_valid_columns.append(each)
                     except IndexError:
@@ -264,19 +265,23 @@ class Display:
         else:
             left_right = entry.split("=")
             # 输入合法性校验
-            reg_column = re.compile("\w+\.\w+\s*")
-            reg_constant = re.compile("\s*\d+\.*\d+")
+            reg_column = re.compile("^\s*(\w+\.\w+)\s*$")
+            reg_constant = re.compile("^\s*(\d+(\.\d+)?)\s*$")
             flag = 0
             for temp_index, each in enumerate(left_right):
-                constant_result = re.match(reg_constant, left_right[temp_index]).group(0)
-                if constant_result:
-                    column_result = ""
-                else:
-                    column_result = re.match(reg_column, left_right[temp_index]).group(0)
+                try:
+                    constant_result = re.match(reg_constant, left_right[temp_index]).group(1)
+                except AttributeError:
+                    constant_result = ""
+                    column_result = re.match(reg_column, left_right[temp_index]).group(1)
+
+                # Table1.Col1 = ?
                 if temp_index == 0 and column_result:
                     flag += 1
+                # ? = 5
                 elif temp_index == 1 and constant_result:
                     flag += 10
+                # Table1.Col1 = Table2.Col2
                 elif temp_index == 1 and column_result:
                     flag += 100
                 else:
@@ -296,26 +301,29 @@ class Display:
                     value = float(table_column)
                 else:
                     value = int(table_column)
-                self.checked_tables.append(table)
-                self.constant[table_column] = value
+                self.g(self.checked_tables, table)
+                # self.checked_tables.append(table)
+                self.constant[key] = value
                 return 1, None
             # Table1.Col1 = Table2.Col2
             elif flag == 101:
                 table_column = left_right[1].strip()
                 table, column = table_column.split(".")
+                # 数据库中不存在 table
                 if table not in self.checked_tables and table not in self.all_tables:
                     self.all_valid_columns.append(table_column)
                     return 0, "Table[{0}] is not found!".format(table)
-                elif table not in self.checked_tables and table in self.all_tables:
-                    self.checked_tables.append(table)
-                    self.constant[key] = table_column
-                    self.constant["value"][key] = []
-                    self.constant["value"][table_column] = self.constant["value"][key]
-                    return 1, None
+                # 数据库中存在 table
                 else:
-                    self.constant[key] = table_column
-                    self.constant["value"][key] = []
-                    self.constant["value"][table_column] = self.constant["value"][key]
+                    if table not in self.checked_tables:
+                        self.g(self.checked_tables, table)
+                    if key in self.constant and not isinstance(self.constant[key], str):
+                        self.constant[table_column] = self.constant[key]
+                    elif table_column in self.constant and not isinstance(self.constant[table_column], str):
+                        self.constant[key] = self.constant[table_column]
+                    else:
+                        self.constant["value"][key] = []
+                        self.constant["value"][table_column] = self.constant["value"][key]
                     return 1, None
             else:
                 return 0, "Input is not valid. For example: Table1.col1 = 5 or Table1.col1 = Table2.col2."

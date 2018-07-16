@@ -265,7 +265,7 @@ class Generate_Data:
 def get_date(num=0):
     """获取今日日期"""
     if num == 0:
-        return datetime.date.today().strftime("%Y%m%d")
+        return datetime.date.today().strftime("%Y-%m-%d")
     else:
         return (datetime.date.today() + datetime.timedelta(days=num)).strftime("%Y-%m-%d")
 
