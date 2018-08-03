@@ -39,20 +39,24 @@ class Generate_Data:
         return table_columns
 
     def solve(self, entry_column, expression, var, index):
-        var_dict = {var: 1j}
-        expression = expression.replace("=", "-(") + ")"
+        var_dict = {var.split(".")[-1]: 1j}
+        temp_expression = ""
+
         for table_column in entry_column:
+            temp_expression += table_column.split(".")[-1]
             if table_column in ["+", "-", "*", "/", "="]:
                 continue
             if self.constant.get(table_column) is not None and not isinstance(self.constant.get(table_column), str):
-                var_dict[table_column] = self.constant[table_column]
+                var_dict[table_column.split(".")[-1]] = float(self.constant[table_column])
             elif self.constant.get(table_column) is not None and isinstance(self.constant.get(table_column), str):
-                var_dict[table_column] = self.constant["value"][table_column][index]
+                var_dict[table_column.split(".")[-1]] = float(self.constant["value"][table_column][index])
             elif table_column == var:
                 continue
             else:
-                var_dict[table_column] = self.all_columns_value[table_column.split(".")[1]][index]
-        value = eval(expression, globals=var_dict)
+                var_dict[table_column.split(".")[-1]] = float(self.all_columns_value[table_column.split(".")[1]][index])
+
+        expression = temp_expression.replace("=", "-(") + ")"
+        value = eval(expression, var_dict)
         return -value.real/value.imag
 
     def generate_column_value(self, tables, entry_columns, db_type, num, constant):
@@ -80,7 +84,8 @@ class Generate_Data:
                                     if len(constant["value"][temp_key]) >= index + 1:
                                         value = constant["value"][temp_key][index]
                                         is_constant = True
-                                    elif len(constant["value"][constant[temp_key]]) >= index + 1:
+                                    elif not isinstance(constant[temp_key], str) \
+                                            and len(constant["value"][constant[temp_key]]) >= index + 1:
                                         value = constant["value"][constant[temp_key]][index]
                                         is_constant = True
                                     # 此情况正常生成数据
@@ -90,19 +95,19 @@ class Generate_Data:
                                     value = constant.get(temp_key)
                                     is_constant = True
                             # 如果 temp_key 在 constant里面，那么 一定不会存在取值情况，只会存在赋值或者计算的情况
-                            elif temp_key not in constant or (temp_key in constant and is_constant is False):
+                            if temp_key not in constant or (temp_key in constant and is_constant is False):
                                 key = column
                                 value = ""
                                 # 字段已存在于字典项中，可直接取值
                                 if key in self.all_columns_value and len(self.all_columns_value[key]) - 1 >= index:
                                     value = self.all_columns_value.get(key)[index]
                                 # 字段已存在于字典项中，但没有可取值
-                                elif key in self.all_columns_value:
-                                    value = self._generate_column_value(row_info=row_info)
-                                    if temp_key in constant:
-                                        constant["value"][temp_key].append(value)
-                                    else:
-                                        self.all_columns_value[key].append(value)
+                                # elif key in self.all_columns_value:
+                                #     value = self._generate_column_value(row_info=row_info)
+                                #     if temp_key in constant:
+                                #         constant["value"][temp_key].append(value)
+                                #     else:
+                                #         self.all_columns_value[key].append(value)
                                 # 字段不存在于字典项中
                                 else:
                                     is_in_entry = False # 判断字段是否在表达式中的标志位
@@ -116,7 +121,7 @@ class Generate_Data:
                                                         and not isinstance(constant.get(each), str):
                                                     continue
                                                 elif constant["value"].get(each) is not None \
-                                                        and len(constant["value"].get(each)) > index + 1:
+                                                        and len(constant["value"].get(each)) >= index + 1:
                                                     continue
                                                 elif self.all_columns_value.get(each.split(".")[1]) is not None \
                                                         and len(self.all_columns_value.get(each.split(".")[1])) >= index + 1:
