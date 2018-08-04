@@ -224,7 +224,7 @@ class Display:
             if is_pass:
                 self.generate_data_page(frame)
 
-    def validate_the_input(self, lr, entry="A1.COL1 + A2.COL2 = A3.COL3"):
+    def validate_the_input(self, lr, entry="A1.COL1 + A2.COL2 = A3.COL3 * A4.COL4"):
         """Extrat entry ==> A1.COL1||A2.COL2||A3.COL3, then split by || \
         and judge each table.column whethor it is validate or not. """
         if entry.strip() == "":
@@ -242,22 +242,22 @@ class Display:
                     entry = entry_temp[:-2]
                 operator.remove(each)
             for each in entry.split("||"):
-                if each.strip() == "":
-                    entry.remove(each)
-                else:
-                    try:
-                        table, column = each.split(".")
-                        if table not in self.checked_tables:
-                            if table not in self.all_tables:
-                                return 0, "Table[{0}] is not found!".format(table)
-                            else:
-                                self.g(self.checked_tables, table)
-                                # print(each, " passed!")
-                        self.all_valid_columns.append(each)
-                    except IndexError:
-                        # messagebox.showerror(title="数据库连接错误", message=str(e), parent=top)
-                        print("Input is not valid, column should be Tables.Column!")
-                        return 0, "Input is not valid, column should be Tables.Column!"
+                # if each.strip() == "":
+                #     entry.remove(each)
+                # else:
+                try:
+                    table, column = each.split(".")
+                    if table not in self.checked_tables:
+                        if table not in self.all_tables:
+                            return 0, "Table[{0}] is not found!".format(table)
+                        else:
+                            self.g(self.checked_tables, table)
+                            # print(each, " passed!")
+                    self.all_valid_columns.append(each)
+                except IndexError as e:
+                    messagebox.showerror(title="输入不合法", message=str(e), parent=top)
+                    # print("Input is not valid, column should be Tables.Column!")
+                    return 0, "Input is not valid, column should be Tables.Column!"
 
             self.extract_all_columns[entry_origin] = entry
 

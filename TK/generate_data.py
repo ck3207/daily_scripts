@@ -302,15 +302,15 @@ def get_time():
 
 if __name__ == "__main__":
     generate_data = Generate_Data()
-    tables = ["portrait_all","portrait_fund"]   # 配置需要插入数据的表名
+    tables = ["portrait_all", "portrait_fund"]   # 配置需要插入数据的表名
     # 配置各表关联字段的关系,值相同的键为关联字段 eg: linkfield_judge = {"fund_account":0,"client_id":0, "client_name":1}
     # 下述配置的意思为 配置的表中若有fund_account 与 client_id,各表中字段fund_accout、client_id都做关联；
     # 各表的client_name值都会关联。
-    linkfield_judge = {"fund_account":0,"client_name":0}
+    linkfield_judge = {"fund_account": 0, "client_name": 0}
     # 例如：linkfield: {'pass_colunm':['portrait_allfund_account'],'client_name':['fund_account91', 'fund_account01'}
     linkfield = {"pass_colunm":[]}  # 存储关联字段的值
 
     for table in tables:
         # print("linkfield:",linkfield)
         cols = generate_data.get_cols(table)    # 获取表字段
-        generate_data.generate_data_for_mysqldb(columns=cols,commit_num=10,commit_times=5)  # 生成数据
+        generate_data.generate_data_for_mysqldb(columns=cols, commit_num=10, commit_times=5)  # 生成数据
