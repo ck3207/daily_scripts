@@ -167,7 +167,10 @@ class Generate_Data:
                                         if temp_key in constant:
                                             constant["value"][temp_key].append(value)
                                         else:
-                                            self.all_columns_value[column] = [value]
+                                            if column in self.all_columns_value.keys():
+                                                self.all_columns_value[column].append(value)
+                                            else:
+                                                self.all_columns_value[column] = [value]
 
                             insert_values += " '{0}',".format(value)
                         insert_values = "({0}),".format(insert_values[:-1])
