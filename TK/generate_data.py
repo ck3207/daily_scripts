@@ -199,7 +199,11 @@ class Generate_Data:
             if "(" in col_type_info:
                 parentheses_left = col_type_info.find("(")
                 parentheses_right = col_type_info.rfind(")")
-                length = int(col_type_info[parentheses_left+1: parentheses_right])
+                try:
+                    length = int(col_type_info[parentheses_left+1: parentheses_right])
+                except ValueError:
+                    # example decimal(19,2)
+                    length = int(col_type_info[parentheses_left+1: parentheses_right].split(",")[0])
                 col_type = col_type_info[:parentheses_left]
             else:
                 length = 0
@@ -316,4 +320,4 @@ if __name__ == "__main__":
     for table in tables:
         # print("linkfield:",linkfield)
         cols = generate_data.get_cols(table)    # 获取表字段
-        generate_data.generate_data_for_mysqldb(columns=cols, commit_num=10, commit_times=5)  # 生成数据
+        generate_data.generate_data_for_mysqldb(columns=cols, commit_num=100, commit_times=3)  # 生成数据
