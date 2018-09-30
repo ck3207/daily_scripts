@@ -21,6 +21,7 @@ class Connect_to_sql:
         self.charset = ""
         self.tables = list()
         self.db_type = ""
+        self.num = 100
 
     def connect_db(self,conn_name, top):
         # self.disconnect()
@@ -107,7 +108,7 @@ class Display:
         top.title("数据库配置")
         top.protocol("WM_DELETE_WINDOW", master.quit)   # 点击右上角关闭按钮，即退出程序
         # new window on the top layer
-        top.resizable(0,0)  # 大小不可变
+        top.resizable(0, 0)  # 大小不可变
         top.attributes("-toolwindow", 1)
         top.wm_attributes("-topmost", 1)
         top.grid()
@@ -170,7 +171,7 @@ class Display:
         tab.destroy()
         b.destroy()
         Button(frame, text="+", command=lambda: self.add_logic_entry(frame, flag=True), width=5)\
-            .grid(row=self.logic_set_row_left,column=0, padx=10, pady=10, ipadx=10, ipady=10, sticky=E)
+            .grid(row=self.logic_set_row_left, column=0, padx=10, pady=10, ipadx=10, ipady=10, sticky=E)
         Label(frame, text="逻辑规则", width=10)\
             .grid(row=self.logic_set_row_left, column=1, padx=10, pady=10, ipadx=10, ipady=10, sticky=E)
         Button(frame, text="+", command=lambda: self.add_logic_entry(frame, flag=False), width=5)\
@@ -187,9 +188,9 @@ class Display:
             print(self.entry.get())
 
         # 条件个数做了限制
-        if (self.logic_set_row_left > self.hs//40 and flag == True) \
-                or (self.logic_set_row_right > self.hs//40 and flag == False):
-            messagebox.showwarning(title="Warning", \
+        if (self.logic_set_row_left > self.hs//40 and flag is True) \
+                or (self.logic_set_row_right > self.hs//40 and flag is False):
+            messagebox.showwarning(title="Warning",
                                    message="每项规则最多能设置{}个条件".format(int(self.hs//40)), icon="warning")
             return
         if flag:
@@ -215,7 +216,7 @@ class Display:
         else:
             for each in self.svs:
                 # print(each[0], each[1], each[2].get())
-                flag, error = self.validate_the_input(entry=each[2].get(), lr=each[0])
+                flag, error = self.validate_the_input(entry=each[2].get(), lr=each[0], top=frame)
 
                 if not flag:
                     messagebox.showerror(title="设置错误", message=error, icon="error", parent=frame)
@@ -224,7 +225,7 @@ class Display:
             if is_pass:
                 self.generate_data_page(frame)
 
-    def validate_the_input(self, lr, entry="A1.COL1 + A2.COL2 = A3.COL3 * A4.COL4"):
+    def validate_the_input(self, lr, top, entry="A1.COL1 + A2.COL2 = A3.COL3 * A4.COL4"):
         """Extrat entry ==> A1.COL1||A2.COL2||A3.COL3, then split by || \
         and judge each table.column whethor it is validate or not. """
         if entry.strip() == "":
@@ -332,15 +333,48 @@ class Display:
                 return 0, "Input is not valid. For example: Table1.col1 = 5 or Table1.col1 = Table2.col2."
 
     def generate_data_page(self, frame):
-        # frame = Frame(height=5, width=20)
-        # frame.grid()
-        # Label(frame, text="输入要产生的数据量：").grid()
-        # Entry(frame).grid(padx=5, pady=5)
+        frame.destroy()
+        messagebox.showinfo(message="数据生成中...")
+
+        # top = Toplevel(master, relief=SUNKEN)
+        # top.title("数据量")
+        # top.protocol("WM_DELETE_WINDOW", master.quit)   # 点击右上角关闭按钮，即退出程序
+        # # new window on the top layer
+        # top.resizable(0, 0)  # 大小不可变
+        # top.attributes("-toolwindow", 1)
+        # top.wm_attributes("-topmost", 1)
+        # top.grid()
+        # self.center_window(top, 500, 400)
+        # Entry(top).grid(row=0, column=10, padx=10, pady=5)
+
         generate_data = Generate_Data(self.cur)
         times = 100
         db_type = connect_to_sql.get_db_type()
         generate_data.generate_column_value(tables=self.checked_tables, entry_columns=self.extract_all_columns, \
                                                        db_type=db_type, num=times, constant=self.constant)
+
+        messagebox.showinfo(message="数据生成完毕..., 点击“确定”退出！")
+        master.quit()
+
+    def _generate_data(self, setting=False):
+        if setting is True:
+            pass
+        top_1 = Toplevel(master, relief=SUNKEN)
+
+        top = Text(top_1, title="每张表生成的数据量", height=500, width=400)
+
+        top.title("数据库配置")
+        top.protocol("WM_DELETE_WINDOW", master.quit)   # 点击右上角关闭按钮，即退出程序
+        # new window on the top layer
+        top.resizable(0, 0)  # 大小不可变
+        top.attributes("-toolwindow", 1)
+        top.wm_attributes("-topmost", 1)
+        top.grid()
+        self.center_window(top, 500, 400)
+        b = Button(top, text="选择配置", command=lambda: self.get_db_configure(top, b))
+        b.grid(padx=200, pady=5, ipadx=20,ipady=20)
+
+
 
     def get_db_configure(self, top, Button_obj):
         global f_json
@@ -390,5 +424,4 @@ if __name__ == "__main__":
     connect_to_sql = Connect_to_sql()
     display = Display()
     display.get_configure_page()
-
     mainloop()
