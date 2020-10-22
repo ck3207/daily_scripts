@@ -43,7 +43,7 @@ def get_date(date, num=90):
         if target_date in trading_day:
             return target_date
         else:
-            return get_date(date,num+1)
+            return get_date(date, num+1)
     else:
         raise Exception("There is a wrong date {0}".format(date))
 

@@ -30,4 +30,13 @@ if __name__ == "__main__":
     # print(getHtml(captcha_url))
     # print(getHtml(login_url,data).read().decode())
     # print(requests.post(login_url,data))
-
+    import re
+    a = "not 404 found 张三 99 深圳"
+    lst = a.split(' ')
+    res = re.findall('\d+\.?\d*|[a-zA-Z]+',a)
+    for i in res:
+        if i in lst:
+            lst.remove(i)
+    new_str = ' '.join(lst)
+    print(res)
+    print(new_str)
